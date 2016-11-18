@@ -1,0 +1,4 @@
+10:36:09: can't open file '/Users/zomi/Workplaces/iscreate_label/icons/backward_20.png' (error 2: No such file or directory)
+10:36:09: Failed to load image from file "/Users/zomi/Workplaces/iscreate_label/icons/backward_20.png".
+10:36:09: can't open file '/Users/zomi/Workplaces/iscreate_label/icons/backward_20.png' (error 2: No such file or directory)
+10:36:09: Failed to load image from file "/Users/zomi/Workplaces/iscreate_label/icons/backward_20.png".
