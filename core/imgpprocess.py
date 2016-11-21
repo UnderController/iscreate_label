@@ -15,6 +15,7 @@ import numpy as np
 
 from core.framedata import get_label_data
 
+
 def WaterMark(img, alpha):
     """
     Trun input image into transparent image.
@@ -67,7 +68,7 @@ def ColorReduce(img, div=64):
     @div: 255/div color
     """
     (h, w) = img.shape[:2]
-    dst = img.copy()
+    dst = np.zeros((img.shape[0], img.shape[1], 3), dtype="uint8")
 
     for c in xrange(0, img.shape[2]):
         dst[:, :, c] = img[:, :, c] / div * div + div / 2
@@ -75,7 +76,7 @@ def ColorReduce(img, div=64):
     return dst
 
 
-def AutoCannyColor(img, stype="rgb", parameter=0.63):
+def AutoCannyColor(img, stype="rgb", parameter=0.65):
     """
     accroding to whole image gray value to set the canny parameter.
 
@@ -86,14 +87,22 @@ def AutoCannyColor(img, stype="rgb", parameter=0.63):
         # used rgb will give more detail from the image -- recommand.
         sp_img = cv2.split(img)
         canny = np.zeros(img.shape, dtype="uint8")
-        mu = []
+        new_canny = []
 
-        for c in xrange(0, len(sp_img) + 1):
-            mu.append(np.mean(sp_img[c]))
+        for idx, c in enumerate(sp_img):
+            mu = np.mean(c)
             th1 = mu * parameter
             th2 = mu * parameter * 2
-            canny[c] = cv2.Canny(sp_img[c], th1, th2)
-        canny = cv2.merge(canny)
+            img = cv2.Canny(c, th1, th2)
+            new_canny.append(img)
+
+        dst = cv2.cvtColor(cv2.merge(new_canny), cv2.COLOR_BGR2GRAY)
+        ret, binary = cv2.threshold(dst, 127, 255, cv2.THRESH_BINARY)
+
+        cv2.imshow("dst", dst)
+        cv2.waitKey(0)
+        print new_canny
+        # canny = cv2.merge(canny)
 
     elif stype == "gray":
         # can used by rgb and gray for fast auto canny.
@@ -148,15 +157,42 @@ def ResizeImage(img, div, width=None):
 
 
 class PreProcess(object):
-    """docstring for PreProcess"""
+    """
+
+    """
 
     def __init__(self, img):
         super(PreProcess, self).__init__()
-        self.img = img
+        self.org_img = img
+        self.group1()
+
+    def group1(self):
+
+        self.org_img = BlurImage(self.org_img, btype='normal', ks=3)
+
+        self.hist_img = EqualizeHistColor(self.org_img)
+        cv2.imshow("hist_img", self.hist_img)
+        cv2.waitKey(0)
+
+        # self.blur = BlurImage(self.hist_img, ks=3)
+        cv2.imshow("BlurImage", self.hist_img)
+        cv2.waitKey(0)
+
+        self.canny = AutoCannyColor(self.hist_img)
+        # cv2.imshow("canny", self.canny)
+
+        self.blur = BlurImage(self.org_img)
+        # self.reduce = ColorReduce(self.org_img)
+        # cv2.imshow("reduce", self.reduce)
+
+        cv2.waitKey(0)
+        # self.dst = WaterMark(self.dst, 1)
 
 
 class SaveImage(object):
-    """docstring for SaveImage"""
+    """
+    TODO: used C++ to change the PNG image with some aplha piexl and canny line.
+    """
 
     def __init__(self, img):
         super(SaveImage, self).__init__()
@@ -177,4 +213,3 @@ class SaveImage(object):
 
     def write(self):
         cv2.imwrite("save.png", self.img)
-
