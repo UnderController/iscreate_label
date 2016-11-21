@@ -14,6 +14,6 @@ Temp
 
 ```
 git add *
-git commit -m "something bullshit comments here"
-git push origin master 
+git commit -m "add flood value slider"
+git push origin master
 ```

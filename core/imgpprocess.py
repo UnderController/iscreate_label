@@ -76,17 +76,18 @@ def ColorReduce(img, div=64):
     return dst
 
 
-def AutoCannyColor(img, stype="rgb", parameter=0.65):
+def AutoCannyColor(img, stype=1, parameter=0.65):
     """
     accroding to whole image gray value to set the canny parameter.
 
     @img: input image
     @parameter: canny threshold1 and threshold2 parameter, be symmetric.
     """
-    if stype == "rgb":
+    canny = np.zeros(img.shape, dtype="uint8")
+
+    if stype == 3:
         # used rgb will give more detail from the image -- recommand.
         sp_img = cv2.split(img)
-        canny = np.zeros(img.shape, dtype="uint8")
         new_canny = []
 
         for idx, c in enumerate(sp_img):
@@ -95,22 +96,14 @@ def AutoCannyColor(img, stype="rgb", parameter=0.65):
             th2 = mu * parameter * 2
             img = cv2.Canny(c, th1, th2)
             new_canny.append(img)
-
         dst = cv2.cvtColor(cv2.merge(new_canny), cv2.COLOR_BGR2GRAY)
-        ret, binary = cv2.threshold(dst, 127, 255, cv2.THRESH_BINARY)
-
-        cv2.imshow("dst", dst)
-        cv2.waitKey(0)
-        print new_canny
-        # canny = cv2.merge(canny)
-
-    elif stype == "gray":
+        ret, canny = cv2.threshold(dst, 10, 255, cv2.THRESH_BINARY)
+    elif stype == 1:
         # can used by rgb and gray for fast auto canny.
         mu = np.mean(img)
         th1 = mu * parameter
         th2 = mu * parameter * 2
         canny = cv2.Canny(img, th1, th2)
-
     else:
         pass
 
@@ -158,7 +151,10 @@ def ResizeImage(img, div, width=None):
 
 class PreProcess(object):
     """
+    Vital task: run before laod the image from the images list. Group1 is test
+    by experience, group2 and group3 is waitting for completion.
 
+    TODO: bine the watermark image with canny outline in C++.
     """
 
     def __init__(self, img):
@@ -167,30 +163,55 @@ class PreProcess(object):
         self.group1()
 
     def group1(self):
+        '''
+        step1: get canny outline by orginal image.
+        step2: reduce the color into 32 in the orginal image.
+        step3: transparent the reduce color image into 0.8.
+        step4: combine the transparent image with canny outline.
+        '''
+        # self.hist_img = EqualizeHistColor(self.org_img)
 
-        self.org_img = BlurImage(self.org_img, btype='normal', ks=3)
-
-        self.hist_img = EqualizeHistColor(self.org_img)
-        cv2.imshow("hist_img", self.hist_img)
-        cv2.waitKey(0)
-
-        # self.blur = BlurImage(self.hist_img, ks=3)
-        cv2.imshow("BlurImage", self.hist_img)
-        cv2.waitKey(0)
-
-        self.canny = AutoCannyColor(self.hist_img)
+        self.blur = BlurImage(self.org_img, btype='normal', ks=3)
+        self.canny = AutoCannyColor(self.blur, stype=1)
         # cv2.imshow("canny", self.canny)
+        # cv2.imwrite("_test_canny.jpg", self.canny)
 
-        self.blur = BlurImage(self.org_img)
-        # self.reduce = ColorReduce(self.org_img)
+        self.blur = BlurImage(self.org_img, btype='normal', ks=3)
+        self.reduce = ColorReduce(self.blur, div=32)
         # cv2.imshow("reduce", self.reduce)
+        # cv2.imwrite("_test_reduce.jpg", self.reduce)
+
+        self.red_dst = WaterMark(self.reduce, 0.2)
+        # cv2.imshow("red_dst", self.red_dst)
+        # cv2.imwrite("_test_red_dst.jpg", self.red_dst)
+
+        # combine the watermark image with canny outline
 
         cv2.waitKey(0)
-        # self.dst = WaterMark(self.dst, 1)
+
+    def group2(self):
+        '''
+        step1:
+        step2:
+        step3:
+        step4:
+        '''
+        pass
+
+    def group3(self):
+        '''
+        step1:
+        step2:
+        step3:
+        step4:
+        '''
+        pass
 
 
 class SaveImage(object):
     """
+    Vital task: run after saving the image.
+
     TODO: used C++ to change the PNG image with some aplha piexl and canny line.
     """
 

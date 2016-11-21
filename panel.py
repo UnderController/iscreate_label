@@ -19,6 +19,9 @@ from core.utils import Stack
 from core.framedata import get_label_data
 from core.imgpprocess import SaveImage
 
+FLOOD_VALUE = 15
+
+
 class LeftPanel(wx.Panel):
     """
     The left panel object.
@@ -30,7 +33,7 @@ class LeftPanel(wx.Panel):
     BMP_BORDER = 3
     NUM_COLS = 4
     SPACING = 4
-    LABEL_HINT = ["Classify Color", "Brush Thickness", "Floodfill Range"]
+    LABEL_HINT = ["Classify Color", "Floodfill Range", "Brush Thickness"]
 
     def __init__(self, parent, ID, sketch):
         wx.Panel.__init__(self, parent, ID, style=wx.RAISED_BORDER)
@@ -39,14 +42,14 @@ class LeftPanel(wx.Panel):
         self.sketch = sketch
 
         colorGrid = self.createColorGrid(parent)
+        floodGrid = self.createFloodGrid(parent)
         # thickGrid = self.createThickGrid(parent)
-        # floodGrid = self.createFloodGrid(parent)
 
         colorlabel = self.createLabelText(parent, self.LABEL_HINT[0])
-        thicklabel = self.createLabelText(parent, self.LABEL_HINT[1])
-        # floodlabel = self.createLabelText(parent, self.LABEL_HINT[2])
+        floodlabel = self.createLabelText(parent, self.LABEL_HINT[1])
+        # thicklabel = self.createLabelText(parent, self.LABEL_HINT[2])
 
-        self.layout(colorlabel, colorGrid, thicklabel)
+        self.layout(colorlabel, colorGrid, floodlabel, floodGrid)
 
     def createColorGrid(self, parent):
         buttonSize = (self.BMP_SIZE + 2 * self.BMP_BORDER,
@@ -72,13 +75,20 @@ class LeftPanel(wx.Panel):
             self.colorMap[b.GetId()] = idx
             self.colorButtons[idx] = b
         self.colorButtons[0].SetToggle(True)
+
         return colorGrid
 
     def createThickGrid(self, parent):
         pass
 
     def createFloodGrid(self, parent):
-        pass
+        flood_grid = wx.GridSizer(rows=1, cols=1, hgap=0, vgap=0)
+        self.slider = wx.Slider(self, -1, FLOOD_VALUE, 5, 40, pos=(0, 0), size=(100, -1),
+                                style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
+        self.Bind(wx.EVT_SLIDER, self.OnSetFlood, self.slider)
+        flood_grid.Add(self.slider, 0)
+
+        return flood_grid
 
     def createLabelText(self, parent, label_text):
         labelGrid = wx.GridSizer(1, hgap=0, vgap=0)
@@ -103,10 +113,12 @@ class LeftPanel(wx.Panel):
 
         self.sketch.innerPanel.SetColor(self.curr_color)
 
-    def OnSetThick(self, event):
-        pass
-
     def OnSetFlood(self, event):
+        flood_value = self.slider.GetValue()
+        self.sketch.innerPanel.SetFloodValue(flood_value)
+        print('Set flood value: {}'.format(flood_value))
+
+    def OnSetThick(self, event):
         pass
 
     def _MakeBitmap(self, color_rgb):
@@ -130,7 +142,6 @@ class LeftPanel(wx.Panel):
         box.Fit(self)
 
 
-
 class RightPanel(wx.Window):
     """
     The right panel object.
@@ -146,7 +157,7 @@ class RightPanel(wx.Window):
         self.img = img
         self.innerPanel = DrawPanel(self, ID, self.img)
 
-        ## Align innerPanel in Center
+        # Align innerPanel in Center
         hbox = wx.BoxSizer(wx.HORIZONTAL)
         vbox = wx.BoxSizer(wx.VERTICAL)
         innerBox = wx.BoxSizer(wx.VERTICAL)
@@ -176,8 +187,6 @@ class RightPanel(wx.Window):
         self.Update()
 
 
-
-
 class DrawPanel(wx.Panel):
     """
     The draw panel object.
@@ -185,13 +194,15 @@ class DrawPanel(wx.Panel):
     # == Initialisation and Window Management ==
     # ==========================================
     """
+
     def __init__(self, parent, ID, img):
-        draw_size = (780, 439)
+        draw_size = (900, 439)
         wx.Panel.__init__(self, parent, ID, size=draw_size)
+        self.SetBackgroundColour("White")
 
         self.img = img
-        self.floodmin_v = 20
-        self.floodmax_v = 20
+        self.floodmin_v = FLOOD_VALUE
+        self.floodmax_v = FLOOD_VALUE
         maxpqueue = 10
         maxnqueue = 5
 
@@ -271,6 +282,10 @@ class DrawPanel(wx.Panel):
         self.brush_color = color_rgb
         self.pen = wx.Pen(self.brush_color, self.brush_thick, wx.SOLID)
 
+    def SetFloodValue(self, flood_value):
+        self.floodmin = (flood_value,) * 3
+        self.floodmax = (flood_value,) * 3
+
     def SetBrushThick(self, num):
         self.brush_thick = num
         self.pen = wx.Pen(self.brush_color, self.brush_thick, wx.SOLID)
@@ -287,7 +302,7 @@ class DrawPanel(wx.Panel):
     def GetNext(self):
         next_img = self.stack_nex.pop()
         self.img = np.array(next_img)
-        frame  = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
         self.bmp.CopyFromBuffer(frame)
         self.Refresh()
 

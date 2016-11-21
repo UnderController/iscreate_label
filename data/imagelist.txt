@@ -1,4 +1,4 @@
-/Users/zomi/Workplaces/iscreate_label/data/img/0000.png
+/Users/zomi/Workplaces/iscreate_label/data/img/0000.jpg
 /Users/zomi/Workplaces/iscreate_label/data/img/0001.jpg
 /Users/zomi/Workplaces/iscreate_label/data/img/1318.jpg
 /Users/zomi/Workplaces/iscreate_label/data/img/2337.jpg
