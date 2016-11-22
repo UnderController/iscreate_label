@@ -14,6 +14,7 @@ from panel import *
 from core.utils import scale_bitmap
 from core.framedata import read_images
 
+
 class CreateTool():
     pass
 
@@ -35,35 +36,39 @@ class TopFrame(wx.Frame):
         """
 
         self.title = "Label Tools -- iscreate"
-        self.size = (1000, 730)
+        self.size = (1100, 750)
         self.style = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, parent, id, self.title,
                           size=self.size, style=self.style)
 
+        # setup parament
         self.img_idx = 0
+        self.tool = "Magic"
+        self.tool_iconsize = [20, 20]
         self.img_list = read_images()
         img_path = self.img_list[self.img_idx]
-        new_img = cv2.imread(img_path)
+        self.beg_img = cv2.imread(img_path)
 
-        self.sketch = RightPanel(self, -1, new_img)
-        self.tool_iconsize = [20, 20]
+        # main Panel
+        self.sketch = RightMagicPanel(self, -1, self.beg_img, self.tool)
+
         # self.initMenuBar()
         self.initStatusBar()
         self.initToolBar()
         self.createPanel()
 
+    def createPanel(self):
+        self.leftPanel = LeftPanel(self, -1, self.sketch)
+
+        box = wx.BoxSizer(wx.HORIZONTAL)
+        box.Add(self.leftPanel, 0, wx.EXPAND)
+        box.Add(self.sketch, 1, wx.EXPAND)
+        self.SetSizerAndFit(box)  # WARNING: canot just SerSizer()
+
         # Bind
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
         self.Bind(wx.EVT_CHAR_HOOK, self.OnKeyPressed)
         wx.EVT_MOTION(self.leftPanel, self.OnMotion)
-
-
-    def createPanel(self):
-        self.leftPanel = LeftPanel(self, -1, self.sketch)
-        box = wx.BoxSizer(wx.HORIZONTAL)
-        box.Add(self.leftPanel, 0, wx.EXPAND)
-        box.Add(self.sketch, 1, wx.EXPAND)
-        self.SetSizer(box)
 
     def initToolBar(self):
         toolbar = self.CreateToolBar()
@@ -90,14 +95,18 @@ class TopFrame(wx.Frame):
 
     def initStatusBar(self):
         self.statusbar = self.CreateStatusBar()
-        self.statusbar.SetFieldsCount(2)
-        self.statusbar.SetStatusWidths([-1, -1])
+        self.statusbar.SetFieldsCount(3)
+        self.statusbar.SetStatusWidths([-1, -2, -3])
 
     def OnMotion(self, event):
         self.statusbar.SetStatusText(
-            "分类: {} - {}".format(self.leftPanel.show_label.encode('utf-8'), self.leftPanel.curr_label), 0)
+            "Classify: {} - {}".format(
+                self.leftPanel.show_label.encode('utf-8'),
+                self.leftPanel.curr_label), 0)
         self.statusbar.SetStatusText(
-            "Color: {}".format(self.leftPanel.curr_color), 1)
+            "Tool: {}".format(self.tool), 1)
+        self.statusbar.SetStatusText(
+            "Color: {}".format(self.leftPanel.curr_color), 2)
         event.Skip()
 
     def _toolBarIconData(self):
@@ -141,20 +150,30 @@ class TopFrame(wx.Frame):
         return toolBarIconList
 
     def OnNew(self, event):
-        print "[ToolBar] New: {}".format("open new file")
+        print("[ToolBar] New: open new file")
 
     def OnSave(self, event):
         print("[ToolBar] Save: save img file")
         self.sketch.innerPanel.save_image()
 
     def OnMagic(self, event):
-        print "[ToolBar] Magic: {}".format("Use magic wand")
+        self.tool = "Magic"
+        print("[ToolBar] Magic: Use magic wand")
 
     def OnBrush(self, event):
-        print "[ToolBar] Brush: {}".format("Use brush pen")
+        self.tool = "Brush"
+        self.img = self.sketch.innerPanel.img
+        self.sketch.Destroy()
+        self.leftPanel.Destroy()
+        self.sketch = RightBrushPanel(self, -1, self.img, self.tool)
+        self.createPanel()
+        self.Refresh()
+
+        print("[ToolBar] Brush: Use brush pen")
 
     def OnPolygon(self, event):
-        print "[ToolBar] Polygon: {}".format("Use polygon point")
+        self.tool = "Polygon"
+        print("[ToolBar] Polygon: Use polygon point")
 
     def OnColor(self, event):
         dialog = wx.ColourDialog(None)

@@ -36,15 +36,18 @@ class LeftPanel(wx.Panel):
     LABEL_HINT = ["Classify Color", "Floodfill Range", "Brush Thickness"]
 
     def __init__(self, parent, ID, sketch):
-        wx.Panel.__init__(self, parent, ID, style=wx.RAISED_BORDER)
+        wx.Panel.__init__(
+            self, parent, ID, size=(120, 710), style=wx.RAISED_BORDER)
 
         # Default parament
         self.sketch = sketch
 
+        # funtional grid
         colorGrid = self.createColorGrid(parent)
         floodGrid = self.createFloodGrid(parent)
         # thickGrid = self.createThickGrid(parent)
 
+        # label grid
         colorlabel = self.createLabelText(parent, self.LABEL_HINT[0])
         floodlabel = self.createLabelText(parent, self.LABEL_HINT[1])
         # thicklabel = self.createLabelText(parent, self.LABEL_HINT[2])
@@ -138,11 +141,11 @@ class LeftPanel(wx.Panel):
         for grid in Grid:
             box.Add(grid, 0, wx.ALL, self.SPACING)
 
-        self.SetSizer(box)
+        self.SetSizerAndFit(box)
         box.Fit(self)
 
 
-class RightPanel(wx.Window):
+class RightMagicPanel(wx.Window):
     """
     The right panel object.
     # ==========================================
@@ -150,12 +153,14 @@ class RightPanel(wx.Window):
     # ==========================================
     """
 
-    def __init__(self, parent, ID, img):
-        wx.Window.__init__(self, parent, ID)
+    def __init__(self, parent, ID, img, tool):
+        default_size = (988, 710)
+        wx.Window.__init__(self, parent, ID, size=default_size)
         self.SetBackgroundColour("Dark Grey")
 
         self.img = img
-        self.innerPanel = DrawPanel(self, ID, self.img)
+        self.win_xy = self.GetSizeTuple()
+        self.innerPanel = MagicPanel(self, ID, self.img, self.win_xy)
 
         # Align innerPanel in Center
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -164,43 +169,55 @@ class RightPanel(wx.Window):
         self.innerPanel.SetSizer(innerBox)
         hbox.Add(self.innerPanel, 0, wx.ALL | wx.ALIGN_CENTER)
         vbox.Add(hbox, 1, wx.ALL | wx.ALIGN_CENTER, 5)
+        # WARNING: ware of SierSizer between SetSizerAndFit
         self.SetSizer(vbox)
         vbox.Fit(self)
 
+        self.Bind(wx.EVT_PAINT, self.OnMotion)
+
     def OnLeftDown(self, event):
-        self.pos = event.GetPositionTuple()
-        self.CaptureMouse()
+        pass
 
     def OnLeftUp(self, event):
-        if self.HasCapture():
-            self.ReleaseMouse()
-        self.Refresh()
+        pass
 
     def OnMotion(self, event):
-        pass
+        self.win_xy = self.GetSizeTuple()
 
     def OnSize(self, event):
         pass
 
     def up_date(self):
-        # when resieve an new image then update the panel.
         self.Update()
 
 
-class DrawPanel(wx.Panel):
+class MagicPanel(wx.Panel):
     """
-    The draw panel object.
+    The magic draw panel object.
     # ==========================================
     # == Initialisation and Window Management ==
     # ==========================================
     """
 
-    def __init__(self, parent, ID, img):
-        draw_size = (900, 439)
-        wx.Panel.__init__(self, parent, ID, size=draw_size)
-        self.SetBackgroundColour("White")
-
+    def __init__(self, parent, ID, img, win_xy):
+        # caculate scale of input image
         self.img = img
+        # print "win_xy", win_xy
+        height, width = self.img.shape[:2]
+        draw_size_w = win_xy[0] - 50
+        if width < draw_size_w:
+            self.scale = float(draw_size_w) / float(width)
+            draw_size_h = height * self.scale
+        else:
+            self.scale = float(draw_size_w) / float(width)
+            draw_size_h = height * self.scale
+
+        print self.scale
+        self.draw_size = (int(draw_size_w), int(draw_size_h))
+        wx.Panel.__init__(self, parent, ID, size=self.draw_size)
+        self.SetBackgroundColour("Black")
+
+        # Setup parament
         self.floodmin_v = FLOOD_VALUE
         self.floodmax_v = FLOOD_VALUE
         maxpqueue = 10
@@ -214,7 +231,6 @@ class DrawPanel(wx.Panel):
         self.color = tuple(self.label_data[0]['color'])
         self.floodmin = (self.floodmin_v,) * 3
         self.floodmax = (self.floodmax_v,) * 3
-        height, width = self.img.shape[:2]
         self.mask = np.zeros((height + 2, width + 2), np.uint8)
         self.mask[:] = 0
 
@@ -230,6 +246,7 @@ class DrawPanel(wx.Panel):
 
     def OnPaint(self, event):
         dc = wx.BufferedPaintDC(self)
+        dc.SetUserScale(self.scale, self.scale)
         dc.DrawBitmap(self.bmp, 0, 0)
 
     def OnLeftDown(self, event):
@@ -237,11 +254,12 @@ class DrawPanel(wx.Panel):
         self.stack_pre.push(np.array(self.img))
 
         self.pos = event.GetPositionTuple()
+        self.pos = tuple([x / self.scale for x in self.pos])
         self.CaptureMouse()
 
     def OnLeftUp(self, event):
         if self.HasCapture():
-            coords = (0, 0) + self.pos
+            coords = (0.0, 0.0) + self.pos
             self.dragline.append(coords)
             self.ChangeFloodFill(coords)
             self.dragline = []
@@ -256,14 +274,19 @@ class DrawPanel(wx.Panel):
 
     def DragMotion(self, event):
         newPos = event.GetPositionTuple()
+        newPos = tuple([x / self.scale for x in newPos])
         coords = self.pos + newPos
         self.dragline.append(coords)
         self.ChangeFloodFill(coords)
         self.pos = newPos
         self.Refresh()
+        # print "coords:", coords
 
     def ChangeFloodFill(self, coords):
         # begin floodfill
+        coords = [int(x) for x in coords]
+        if coords[2] > self.draw_size[0] or coords[3] > self.draw_size[1]:
+            return
         fill_color = (self.color[2], self.color[1], self.color[0])
         cv2.floodFill(self.img, self.mask, (coords[2], coords[3]),
                       fill_color, self.floodmin, self.floodmax)
@@ -271,6 +294,7 @@ class DrawPanel(wx.Panel):
         self.bmp.CopyFromBuffer(frame)
 
         print "[ACTION] floodfill {} with {}".format(self.pos, self.color)
+        return
 
     def SetColor(self, color_rgb):
         self.color = color_rgb
@@ -291,8 +315,9 @@ class DrawPanel(wx.Panel):
         self.pen = wx.Pen(self.brush_color, self.brush_thick, wx.SOLID)
 
     def GetPre(self):
-        # Mark: canot used the self.img save into Stack() because the numpy # is store in the memory, so we should deep copy the numpy like:
-        # B = np.array(A)
+        # Mark: canot used the self.img save into Stack() because the numpy
+        # is store in the memory, so we should deep copy the numpy like:
+        ## B = np.array(A)
         pre_img = self.stack_pre.pop()
         self.img = np.array(pre_img)
         frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
@@ -315,3 +340,109 @@ class DrawPanel(wx.Panel):
     def save_image(self):
         print("[Save] Saving image...")
         save = SaveImage(self.img)
+
+
+class RightBrushPanel(wx.Window):
+    """
+    The right brush panel object.
+    # ==========================================
+    # == Initialisation and Window Management ==
+    # ==========================================
+    """
+
+    def __init__(self, parent, ID, img, tool):
+        default_size = (988, 710)
+        wx.Window.__init__(self, parent, ID, size=default_size)
+        self.SetBackgroundColour("Black")
+
+        self.img = img
+        self.win_xy = self.GetSizeTuple()
+        self.innerPanel = BrushPanel(self, ID, self.img, self.win_xy)
+
+        # Align innerPanel in Center
+        hbox = wx.BoxSizer(wx.HORIZONTAL)
+        vbox = wx.BoxSizer(wx.VERTICAL)
+        innerBox = wx.BoxSizer(wx.VERTICAL)
+        self.innerPanel.SetSizer(innerBox)
+        hbox.Add(self.innerPanel, 0, wx.ALL | wx.ALIGN_CENTER)
+        vbox.Add(hbox, 1, wx.ALL | wx.ALIGN_CENTER, 5)
+        # WARNING: ware of SierSizer between SetSizerAndFit
+        self.SetSizer(vbox)
+        vbox.Fit(self)
+
+        self.Bind(wx.EVT_PAINT, self.OnMotion)
+
+    def OnLeftDown(self, event):
+        pass
+
+    def OnLeftUp(self, event):
+        pass
+
+    def OnMotion(self, event):
+        self.win_xy = self.GetSizeTuple()
+
+    def OnSize(self, event):
+        pass
+
+    def up_date(self):
+        self.Update()
+
+
+class BrushPanel(wx.Panel):
+    """
+    The brush draw panel object.
+    # ==========================================
+    # == Initialisation and Window Management ==
+    # ==========================================
+    """
+
+    def __init__(self, parent, ID, img, win_xy):
+        # caculate scale of input image
+        self.img = img
+        # print "win_xy", win_xy
+        height, width = self.img.shape[:2]
+        draw_size_w = win_xy[0] - 50
+        if width < draw_size_w:
+            self.scale = float(draw_size_w) / float(width)
+            draw_size_h = height * self.scale
+        else:
+            self.scale = float(draw_size_w) / float(width)
+            draw_size_h = height * self.scale
+
+        print "scale:", self.scale
+        self.draw_size = (int(draw_size_w), int(draw_size_h))
+        wx.Panel.__init__(self, parent, ID, size=self.draw_size)
+        self.SetBackgroundColour("Black")
+
+        # Setup parament
+        maxpqueue = 10
+        maxnqueue = 5
+
+        # setup for floodFill
+        self.stack_pre = Stack()
+        self.stack_nex = Stack()
+
+        self.label_data = get_label_data()
+        self.color = tuple(self.label_data[0]['color'])
+
+        # setup for drawbitmap
+        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        self.bmp = wx.BitmapFromBuffer(width, height, frame)
+
+        # Bind for event
+        self.Bind(wx.EVT_PAINT, self.OnPaint)
+        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
+        self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
+        self.Bind(wx.EVT_MOTION, self.OnMotion)
+
+    def OnPaint(self, event):
+        pass
+
+    def OnLeftDown(self, event):
+        pass
+
+    def OnLeftUp(self, event):
+        pass
+
+    def OnMotion(self, event):
+        pass

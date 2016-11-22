@@ -5,9 +5,12 @@ void WaterCanny(InputArray _water, InputArray _canny){
     w = water.cols;
     h = water.rows;
 
-    for(int i = 0;i < h; i++){
-        for(int j = 0; j < w; j++){
 
+    for(int i = 0;i < h; i++){
+        uchar water_data = water.ptr<uchar>;
+
+        for(int j = 0; j < w; j++){
+            water_data[j] =
         }
     }
 }
