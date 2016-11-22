@@ -14,6 +14,6 @@ Temp
 
 ```
 git add *
-git commit -m "add flood value slider"
+git commit -m "add brush model"
 git push origin master
 ```

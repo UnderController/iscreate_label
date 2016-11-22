@@ -20,7 +20,7 @@ from core.framedata import get_label_data
 from core.imgpprocess import SaveImage
 
 FLOOD_VALUE = 15
-
+THICK_VALUE = 10
 
 class LeftPanel(wx.Panel):
     """
@@ -35,24 +35,31 @@ class LeftPanel(wx.Panel):
     SPACING = 4
     LABEL_HINT = ["Classify Color", "Floodfill Range", "Brush Thickness"]
 
-    def __init__(self, parent, ID, sketch):
+    def __init__(self, parent, ID, sketch, tool):
         wx.Panel.__init__(
             self, parent, ID, size=(120, 710), style=wx.RAISED_BORDER)
+        print "__init__ LeftPanel"
 
         # Default parament
         self.sketch = sketch
+        self.tool = tool
 
         # funtional grid
         colorGrid = self.createColorGrid(parent)
-        floodGrid = self.createFloodGrid(parent)
-        # thickGrid = self.createThickGrid(parent)
 
         # label grid
-        colorlabel = self.createLabelText(parent, self.LABEL_HINT[0])
-        floodlabel = self.createLabelText(parent, self.LABEL_HINT[1])
-        # thicklabel = self.createLabelText(parent, self.LABEL_HINT[2])
+        colorlabel = self.createLabelText(self.LABEL_HINT[0])
 
-        self.layout(colorlabel, colorGrid, floodlabel, floodGrid)
+        if self.tool  == 'magic':
+            secondlabel = self.createLabelText(self.LABEL_HINT[1])
+            floodGrid = self.createFloodGrid(parent)
+            self.layout(colorlabel, colorGrid, secondlabel, floodGrid)
+        elif self.tool == 'brush':
+            secondlabel = self.createLabelText(self.LABEL_HINT[2])
+            thickGrid = self.createThickGrid(parent)
+            self.layout(colorlabel, colorGrid, secondlabel, thickGrid)
+        else:
+            self.layout(colorlabel, colorGrid)
 
     def createColorGrid(self, parent):
         buttonSize = (self.BMP_SIZE + 2 * self.BMP_BORDER,
@@ -82,20 +89,28 @@ class LeftPanel(wx.Panel):
         return colorGrid
 
     def createThickGrid(self, parent):
-        pass
+        thick_grid = wx.GridSizer(rows =1,cols =1,hgap=0,vgap =0)
+        self.thick_slider = wx.Slider(
+            self, -1, THICK_VALUE, 2, 30, pos=(0,0), size=(100, -1),
+            style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
+        self.Bind(wx.EVT_SLIDER, self.OnSetThick, self.thick_slider)
+
+        thick_grid.Add(self.thick_slider, 0)
+        return thick_grid
 
     def createFloodGrid(self, parent):
         flood_grid = wx.GridSizer(rows=1, cols=1, hgap=0, vgap=0)
-        self.slider = wx.Slider(self, -1, FLOOD_VALUE, 5, 40, pos=(0, 0), size=(100, -1),
-                                style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
+        self.slider = wx.Slider(
+            self, -1, FLOOD_VALUE, 5, 40, pos=(0, 0), size=(100, -1),
+            style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
         self.Bind(wx.EVT_SLIDER, self.OnSetFlood, self.slider)
-        flood_grid.Add(self.slider, 0)
 
+        flood_grid.Add(self.slider, 0)
         return flood_grid
 
-    def createLabelText(self, parent, label_text):
+    def createLabelText(self, label_text):
         labelGrid = wx.GridSizer(1, hgap=0, vgap=0)
-        labeltext = wx.StaticText(parent, -1, label_text, (0, 0))
+        labeltext = wx.StaticText(self, -1, label_text, (0, 0))
         labelGrid.Add(labeltext, 0)
         return labelGrid
 
@@ -114,15 +129,20 @@ class LeftPanel(wx.Panel):
                 self.colorButtons[i].SetToggle(False)
             self.colorButtons[idx].SetToggle(True)
 
-        self.sketch.innerPanel.SetColor(self.curr_color)
+        self.sketch.innerPanel.set_color(self.curr_color)
 
     def OnSetFlood(self, event):
-        flood_value = self.slider.GetValue()
-        self.sketch.innerPanel.SetFloodValue(flood_value)
-        print('Set flood value: {}'.format(flood_value))
+        if self.tool == 'magic':
+            flood_value = self.slider.GetValue()
+            self.sketch.innerPanel.set_flood_value(flood_value)
+            print('Set flood value: {}'.format(flood_value))
 
     def OnSetThick(self, event):
-        pass
+        if self.tool == 'brush':
+            thick_value = self.thick_slider.GetValue()
+            self.sketch.innerPanel.set_brushthick(thick_value)
+            print('Set brush thickness: {}'.format(thick_value))
+
 
     def _MakeBitmap(self, color_rgb):
         bmp = wx.EmptyBitmap(15, 15)
@@ -145,9 +165,9 @@ class LeftPanel(wx.Panel):
         box.Fit(self)
 
 
-class RightMagicPanel(wx.Window):
+class MagicPanel(wx.Window):
     """
-    The right panel object.
+    The right magic panel object.
     # ==========================================
     # == Initialisation and Window Management ==
     # ==========================================
@@ -159,8 +179,9 @@ class RightMagicPanel(wx.Window):
         self.SetBackgroundColour("Dark Grey")
 
         self.img = img
+        self.ID = ID
         self.win_xy = self.GetSizeTuple()
-        self.innerPanel = MagicPanel(self, ID, self.img, self.win_xy)
+        self.innerPanel = DrawMagicPanel(self, ID, self.img, self.win_xy)
 
         # Align innerPanel in Center
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -169,37 +190,25 @@ class RightMagicPanel(wx.Window):
         self.innerPanel.SetSizer(innerBox)
         hbox.Add(self.innerPanel, 0, wx.ALL | wx.ALIGN_CENTER)
         vbox.Add(hbox, 1, wx.ALL | wx.ALIGN_CENTER, 5)
-        # WARNING: ware of SierSizer between SetSizerAndFit
+        # WARNING: ware of SierSizer between SetSizerAndFit()
         self.SetSizer(vbox)
         vbox.Fit(self)
 
         self.Bind(wx.EVT_PAINT, self.OnMotion)
 
-    def OnLeftDown(self, event):
-        pass
-
-    def OnLeftUp(self, event):
-        pass
-
     def OnMotion(self, event):
         self.win_xy = self.GetSizeTuple()
 
-    def OnSize(self, event):
-        pass
 
-    def up_date(self):
-        self.Update()
-
-
-class MagicPanel(wx.Panel):
+class DrawMagicPanel(wx.Panel):
     """
-    The magic draw panel object.
+    The draw magic panel object.
     # ==========================================
     # == Initialisation and Window Management ==
     # ==========================================
     """
 
-    def __init__(self, parent, ID, img, win_xy):
+    def __init__(self, parent, ID, img, win_xy, color=None):
         # caculate scale of input image
         self.img = img
         # print "win_xy", win_xy
@@ -235,8 +244,8 @@ class MagicPanel(wx.Panel):
         self.mask[:] = 0
 
         # setup for drawbitmap
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        self.bmp = wx.BitmapFromBuffer(width, height, frame)
+        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB) ##RGB
+        self.bmp = wx.BitmapFromBuffer(width, height, frame) ##RGB
 
         # Bind for event
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -290,29 +299,24 @@ class MagicPanel(wx.Panel):
         fill_color = (self.color[2], self.color[1], self.color[0])
         cv2.floodFill(self.img, self.mask, (coords[2], coords[3]),
                       fill_color, self.floodmin, self.floodmax)
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB) ##BGR
         self.bmp.CopyFromBuffer(frame)
 
         print "[ACTION] floodfill {} with {}".format(self.pos, self.color)
         return
 
-    def SetColor(self, color_rgb):
+    def set_color(self, color_rgb):
         self.color = color_rgb
+
+    def get_color(self):
+        return self.color
 
     def SetFillColor(self, color_rgb):
         self.color = color_rgb
 
-    def SetBrushColor(self, color_rgb):
-        self.brush_color = color_rgb
-        self.pen = wx.Pen(self.brush_color, self.brush_thick, wx.SOLID)
-
-    def SetFloodValue(self, flood_value):
+    def set_flood_value(self, flood_value):
         self.floodmin = (flood_value,) * 3
         self.floodmax = (flood_value,) * 3
-
-    def SetBrushThick(self, num):
-        self.brush_thick = num
-        self.pen = wx.Pen(self.brush_color, self.brush_thick, wx.SOLID)
 
     def GetPre(self):
         # Mark: canot used the self.img save into Stack() because the numpy
@@ -342,7 +346,7 @@ class MagicPanel(wx.Panel):
         save = SaveImage(self.img)
 
 
-class RightBrushPanel(wx.Window):
+class BrushPanel(wx.Window):
     """
     The right brush panel object.
     # ==========================================
@@ -351,13 +355,14 @@ class RightBrushPanel(wx.Window):
     """
 
     def __init__(self, parent, ID, img, tool):
-        default_size = (988, 710)
+        default_size = (988, 711)
         wx.Window.__init__(self, parent, ID, size=default_size)
-        self.SetBackgroundColour("Black")
+        self.SetBackgroundColour("Gray")
 
         self.img = img
+        self.ID = ID
         self.win_xy = self.GetSizeTuple()
-        self.innerPanel = BrushPanel(self, ID, self.img, self.win_xy)
+        self.innerPanel = DrawBrushPanel(self, ID, self.img, self.win_xy)
 
         # Align innerPanel in Center
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -366,40 +371,23 @@ class RightBrushPanel(wx.Window):
         self.innerPanel.SetSizer(innerBox)
         hbox.Add(self.innerPanel, 0, wx.ALL | wx.ALIGN_CENTER)
         vbox.Add(hbox, 1, wx.ALL | wx.ALIGN_CENTER, 5)
-        # WARNING: ware of SierSizer between SetSizerAndFit
         self.SetSizer(vbox)
         vbox.Fit(self)
 
-        self.Bind(wx.EVT_PAINT, self.OnMotion)
 
-    def OnLeftDown(self, event):
-        pass
-
-    def OnLeftUp(self, event):
-        pass
-
-    def OnMotion(self, event):
-        self.win_xy = self.GetSizeTuple()
-
-    def OnSize(self, event):
-        pass
-
-    def up_date(self):
-        self.Update()
-
-
-class BrushPanel(wx.Panel):
+class DrawBrushPanel(wx.Panel):
     """
-    The brush draw panel object.
+    The draw brush panel object.
     # ==========================================
     # == Initialisation and Window Management ==
     # ==========================================
+
+    test by experience cannot used opencv cv2.circle and cv2.line too slow
     """
 
-    def __init__(self, parent, ID, img, win_xy):
+    def __init__(self, parent, ID, img, win_xy, color=None):
         # caculate scale of input image
         self.img = img
-        # print "win_xy", win_xy
         height, width = self.img.shape[:2]
         draw_size_w = win_xy[0] - 50
         if width < draw_size_w:
@@ -409,40 +397,117 @@ class BrushPanel(wx.Panel):
             self.scale = float(draw_size_w) / float(width)
             draw_size_h = height * self.scale
 
-        print "scale:", self.scale
+        print "brush scale:", self.scale
         self.draw_size = (int(draw_size_w), int(draw_size_h))
         wx.Panel.__init__(self, parent, ID, size=self.draw_size)
-        self.SetBackgroundColour("Black")
+        self.SetBackgroundColour("White")
 
         # Setup parament
+        self.thickness = 10
+        self.color = color
+        self.pen = wx.Pen(self.color, self.thickness, wx.SOLID)
+        self.lines = []
+        self.curLine = []
+        self.pos = (0, 0)
         maxpqueue = 10
         maxnqueue = 5
-
-        # setup for floodFill
         self.stack_pre = Stack()
         self.stack_nex = Stack()
-
         self.label_data = get_label_data()
-        self.color = tuple(self.label_data[0]['color'])
 
-        # setup for drawbitmap
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        self.bmp = wx.BitmapFromBuffer(width, height, frame)
+        # change image into wxpython bitmap
+        self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        image = wx.EmptyImage(width, height)
+        image.SetData(self.frame.tostring())
+        self.bmp = image.ConvertToBitmap()
+        self.init_buffer()
+        # self.bmp = wx.BitmapFromBuffer(width, height, self.self.frame)
 
         # Bind for event
-        self.Bind(wx.EVT_PAINT, self.OnPaint)
-        self.Bind(wx.EVT_LEFT_DOWN, self.OnLeftDown)
-        self.Bind(wx.EVT_LEFT_UP, self.OnLeftUp)
-        self.Bind(wx.EVT_MOTION, self.OnMotion)
+        self.Bind(wx.EVT_LEFT_DOWN, self.on_left_down)
+        self.Bind(wx.EVT_LEFT_UP, self.on_left_up)
+        self.Bind(wx.EVT_MOTION, self.on_motion)
+        self.Bind(wx.EVT_PAINT, self.on_paint)
 
-    def OnPaint(self, event):
+    def init_buffer(self):
+        dc = wx.BufferedDC(None, self.bmp)
+
+    def get_line_data(self):
+        return self.lines[:]
+
+    def set_lines_data(self):
+        self.lines = lines[:]
+        self.init_buffer()
+        self.Refresh()
+
+    def on_left_down(self, event):
+        self.curLine = []
+        self.pos = event.GetPositionTuple()
+        self.CaptureMouse()
+
+    def on_left_up(self, event):
+        if self.HasCapture():
+            # Record lines action
+            self.lines.append((self.color, self.thickness, self.curLine))
+            self.curLine = []
+
+            self.ReleaseMouse()
+
+    def on_motion(self, event):
+        if event.Dragging() and event.LeftIsDown():
+            dc = wx.BufferedDC(wx.ClientDC(self), self.bmp)
+            self.draw_motion(dc, event)
+            # self.bmp.SaveFile("bit.bmp", wx.BITMAP_TYPE_BMP)
+            ## change self.bmp into numpy
+            self.img = self._change2numpy(self.bmp)
+            print "[ACTION] brush {} with {}".format(self.pos, self.color)
+        event.Skip()
+
+        return
+
+    def draw_motion(self, dc, event):
+        dc.SetPen(self.pen)
+        newPos = event.GetPositionTuple()
+        coords = self.pos + newPos
+        self.curLine.append(coords)
+        dc.DrawLine(*coords)
+        self.pos = newPos
+
+    def on_paint(self, event):
+        dc = wx.BufferedPaintDC(self, self.bmp)
+
+    def set_color(self, color):
+        self.color = color
+        self.pen = wx.Pen(self.color, self.thickness, wx.SOLID)
+
+    def get_color(self):
+        return self.color
+
+    def _change2numpy(self, bitmap):
+        img = wx.ImageFromBitmap(bitmap)
+        arr = np.frombuffer(img.GetDataBuffer(), dtype='uint8')
+        h, w = (bitmap.GetHeight(), bitmap.GetWidth())
+        img2 = np.reshape(arr, (h,w,3)) ##RGB
+        return cv2.cvtColor(img2, cv2.COLOR_BGR2RGB) ##BGR
+
+
+
+    def set_brushthick(self, num):
+        self.thickness = num
+        self.pen = wx.Pen(self.color, self.thickness, wx.SOLID)
+
+    def get_brushthick(self):
+        return self.thickness
+
+    def GetPre(self):
         pass
 
-    def OnLeftDown(self, event):
+    def GetNext(self):
         pass
 
-    def OnLeftUp(self, event):
+    def next_iamge(self, img):
         pass
 
-    def OnMotion(self, event):
-        pass
+    def save_image(self):
+        print("[Save] Saving image...")
+        # save = SaveImage(self.img)

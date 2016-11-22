@@ -43,14 +43,14 @@ class TopFrame(wx.Frame):
 
         # setup parament
         self.img_idx = 0
-        self.tool = "Magic"
+        self.tool = "magic"
         self.tool_iconsize = [20, 20]
         self.img_list = read_images()
         img_path = self.img_list[self.img_idx]
-        self.beg_img = cv2.imread(img_path)
+        self.beg_img = cv2.imread(img_path)  # BGR
 
         # main Panel
-        self.sketch = RightMagicPanel(self, -1, self.beg_img, self.tool)
+        self.sketch = MagicPanel(self, -1, self.beg_img, self.tool)
 
         # self.initMenuBar()
         self.initStatusBar()
@@ -58,12 +58,12 @@ class TopFrame(wx.Frame):
         self.createPanel()
 
     def createPanel(self):
-        self.leftPanel = LeftPanel(self, -1, self.sketch)
+        self.leftPanel = LeftPanel(self, -1, self.sketch, self.tool)
 
         box = wx.BoxSizer(wx.HORIZONTAL)
         box.Add(self.leftPanel, 0, wx.EXPAND)
         box.Add(self.sketch, 1, wx.EXPAND)
-        self.SetSizerAndFit(box)  # WARNING: canot just SerSizer()
+        self.SetSizerAndFit(box)  # WARNING:
 
         # Bind
         self.Bind(wx.EVT_CLOSE, self.OnCloseWindow)
@@ -157,19 +157,39 @@ class TopFrame(wx.Frame):
         self.sketch.innerPanel.save_image()
 
     def OnMagic(self, event):
-        self.tool = "Magic"
-        print("[ToolBar] Magic: Use magic wand")
+        # used floodfill method fill range color in the graphy
+        if not self.tool == "magic":
+            self.tool = "magic"
+
+            img = self.sketch.innerPanel.img.copy()
+            color = self.sketch.innerPanel.get_color()
+            self.sketch.Destroy()
+            self.leftPanel.Destroy()
+            self.sketch = MagicPanel(self, -1, img, self.tool)
+            self.sketch.innerPanel.set_color(color)
+            # self.leftPanel.Update()
+            self.createPanel()
+            self.Refresh()
+            print("[ToolBar] Brush: Using magic wand")
+        print("[ToolBar] Brush: Already magic wand")
+        event.Skip()
 
     def OnBrush(self, event):
-        self.tool = "Brush"
-        self.img = self.sketch.innerPanel.img
-        self.sketch.Destroy()
-        self.leftPanel.Destroy()
-        self.sketch = RightBrushPanel(self, -1, self.img, self.tool)
-        self.createPanel()
-        self.Refresh()
+        # use brush to draw line and point in the graphy
+        if not self.tool == "brush":
+            self.tool = "brush"
 
-        print("[ToolBar] Brush: Use brush pen")
+            img = self.sketch.innerPanel.img.copy()
+            color = self.sketch.innerPanel.get_color()
+            self.sketch.Destroy()
+            self.leftPanel.Destroy()
+            self.sketch = BrushPanel(self, -1, img, self.tool)
+            self.sketch.innerPanel.set_color(color)
+            self.createPanel()
+            self.Refresh()
+            print("[ToolBar] Brush: Using brush pen")
+        print("[ToolBar] Brush: Already brush pen")
+        event.Skip()
 
     def OnPolygon(self, event):
         self.tool = "Polygon"
