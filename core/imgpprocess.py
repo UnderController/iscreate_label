@@ -174,20 +174,20 @@ class PreProcess(object):
         self.blur = BlurImage(self.org_img, btype='normal', ks=3)
         self.canny = AutoCannyColor(self.blur, stype=1)
         # cv2.imshow("canny", self.canny)
-        # cv2.imwrite("_test_canny.jpg", self.canny)
+        cv2.imwrite("_test_canny.jpg", self.canny)
 
         self.blur = BlurImage(self.org_img, btype='normal', ks=3)
         self.reduce = ColorReduce(self.blur, div=32)
         # cv2.imshow("reduce", self.reduce)
-        # cv2.imwrite("_test_reduce.jpg", self.reduce)
+        cv2.imwrite("_test_reduce.jpg", self.reduce)
 
         self.red_dst = WaterMark(self.reduce, 0.2)
         # cv2.imshow("red_dst", self.red_dst)
-        # cv2.imwrite("_test_red_dst.jpg", self.red_dst)
+        cv2.imwrite("_test_result.jpg", self.red_dst)
 
         # combine the watermark image with canny outline
 
-        cv2.waitKey(0)
+        # cv2.waitKey(0)
 
     def group2(self):
         '''
@@ -215,15 +215,17 @@ class SaveImage(object):
     TODO: used C++ to change the PNG image with some aplha piexl and canny line.
     """
 
-    def __init__(self, img):
+    def __init__(self, img, img_path):
         super(SaveImage, self).__init__()
         self.img = img
+        self.img_path = img_path
         label_data = get_label_data()
         self.label_color = []
         for idx, each_label in enumerate(label_data):
             self.label_color.append(each_label['color'])
 
         self.run()
+        print "[Save] Saved."
 
     def run(self):
         self.write()
@@ -233,4 +235,10 @@ class SaveImage(object):
         cv2.waitKey(0)
 
     def write(self):
-        cv2.imwrite("save.png", self.img)
+        dir_name_, file_name__ = os.path.split(self.img_path)
+        file_name_ = os.path.splitext(file_name__)
+        file_name = os.path.join(dir_name_,
+                                 file_name_[0] + "_gt.png")
+
+        cv2.imwrite(file_name, self.img,
+                    (cv2.cv.CV_IMWRITE_PNG_COMPRESSION, 9))

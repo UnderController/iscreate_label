@@ -4,5 +4,5 @@ import cv2
 
 
 if __name__ == '__main__':
-    img = cv2.imread("1324_small.jpg")
+    img = cv2.imread("image-00505.jpeg")
     PreProcess(img)

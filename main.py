@@ -46,11 +46,12 @@ class TopFrame(wx.Frame):
         self.tool = "magic"
         self.tool_iconsize = [20, 20]
         self.img_list = read_images()
-        img_path = self.img_list[self.img_idx]
-        self.beg_img = cv2.imread(img_path)  # BGR
+        self.img_path = self.img_list[self.img_idx]
+        self.beg_img = cv2.imread(self.img_path)  # BGR
 
         # main Panel
-        self.sketch = MagicPanel(self, -1, self.beg_img, self.tool)
+        self.sketch = MagicPanel(
+            self, -1, self.beg_img, self.img_path, self.tool)
 
         # self.initMenuBar()
         self.initStatusBar()
@@ -114,8 +115,8 @@ class TopFrame(wx.Frame):
         Toolbar icon info is store in here. TODO: change into json or XML file.
         """
         toolBarIconList = (
-            ('New', 'icons/new_20.png',
-                'Open New Image File.', self.OnNew),
+            # ('New', 'icons/new_20.png',
+            #     'Open New Image File.', self.OnNew),
             ('Save', 'icons/save_20.png',
                 'Save current image file.', self.OnSave),
             ('Next', 'icons/next_20.png',
@@ -165,14 +166,16 @@ class TopFrame(wx.Frame):
             color = self.sketch.innerPanel.get_color()
             self.sketch.Destroy()
             self.leftPanel.Destroy()
-            self.sketch = MagicPanel(self, -1, img, self.tool)
+            self.sketch = MagicPanel(self, -1, img, self.img_path, self.tool)
             self.sketch.innerPanel.set_color(color)
             # self.leftPanel.Update()
             self.createPanel()
             self.Refresh()
+            event.Skip()
             print("[ToolBar] Brush: Using magic wand")
-        print("[ToolBar] Brush: Already magic wand")
-        event.Skip()
+        else:
+            print("[ToolBar] Brush: Already magic wand")
+            event.Skip()
 
     def OnBrush(self, event):
         # use brush to draw line and point in the graphy
@@ -183,17 +186,19 @@ class TopFrame(wx.Frame):
             color = self.sketch.innerPanel.get_color()
             self.sketch.Destroy()
             self.leftPanel.Destroy()
-            self.sketch = BrushPanel(self, -1, img, self.tool)
+            self.sketch = BrushPanel(self, -1, img, self.img_path, self.tool)
             self.sketch.innerPanel.set_color(color)
             self.createPanel()
             self.Refresh()
+            event.Skip()
             print("[ToolBar] Brush: Using brush pen")
-        print("[ToolBar] Brush: Already brush pen")
-        event.Skip()
+        else:
+            print("[ToolBar] Brush: Already brush pen")
+            event.Skip()
 
     def OnPolygon(self, event):
         self.tool = "Polygon"
-        print("[ToolBar] Polygon: Use polygon point")
+        print("[ToolBar] Polygon: Polygon tool is not finish.")
 
     def OnColor(self, event):
         dialog = wx.ColourDialog(None)
@@ -202,7 +207,7 @@ class TopFrame(wx.Frame):
             colour_data = dialog.GetColourData()
             curr_color = colour_data.GetColour().Get()
             self.leftPanel.curr_color = curr_color
-            self.sketch.innerPanel.SetColor(curr_color)
+            self.sketch.innerPanel.set_color(curr_color)
 
         print("[ToolBar] Color: Select Color {} From Panel".format(
             str(colour_data.GetColour().Get())))
@@ -212,11 +217,15 @@ class TopFrame(wx.Frame):
         if not self.sketch.innerPanel.stack_nex.is_empty():
             self.sketch.innerPanel.GetNext()
             print("[ToolBar] Next: go to next step")
+        else:
+            print("[ToolBar] Next: next stack is empty")
 
     def OnBackward(self, event):
         if not self.sketch.innerPanel.stack_pre.is_empty():
             self.sketch.innerPanel.GetPre()
-            print("[ToolBar] Pre: {} back to preview step")
+            print("[ToolBar] Pre: previous step")
+        else:
+            print("[ToolBar] Pre: pre stack is empty")
 
     def OnNextImg(self, event):
         # TODO: at the end of next iamge should open a new dialog
@@ -229,7 +238,7 @@ class TopFrame(wx.Frame):
 
             print("[ToolBar] Next: Go to next image: {}".format(nimg_path))
             self.sketch.innerPanel.save_image()
-            self.sketch.innerPanel.next_iamge(new_img)
+            self.sketch.innerPanel.next_iamge(new_img, nimg_path)
         else:
             print("[Exit] No more iamges.")
             self.sketch.innerPanel.save_image()

@@ -22,6 +22,7 @@ from core.imgpprocess import SaveImage
 FLOOD_VALUE = 15
 THICK_VALUE = 10
 
+
 class LeftPanel(wx.Panel):
     """
     The left panel object.
@@ -50,7 +51,7 @@ class LeftPanel(wx.Panel):
         # label grid
         colorlabel = self.createLabelText(self.LABEL_HINT[0])
 
-        if self.tool  == 'magic':
+        if self.tool == 'magic':
             secondlabel = self.createLabelText(self.LABEL_HINT[1])
             floodGrid = self.createFloodGrid(parent)
             self.layout(colorlabel, colorGrid, secondlabel, floodGrid)
@@ -89,9 +90,9 @@ class LeftPanel(wx.Panel):
         return colorGrid
 
     def createThickGrid(self, parent):
-        thick_grid = wx.GridSizer(rows =1,cols =1,hgap=0,vgap =0)
+        thick_grid = wx.GridSizer(rows=1, cols=1, hgap=0, vgap=0)
         self.thick_slider = wx.Slider(
-            self, -1, THICK_VALUE, 2, 30, pos=(0,0), size=(100, -1),
+            self, -1, THICK_VALUE, 2, 30, pos=(0, 0), size=(100, -1),
             style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
         self.Bind(wx.EVT_SLIDER, self.OnSetThick, self.thick_slider)
 
@@ -143,7 +144,6 @@ class LeftPanel(wx.Panel):
             self.sketch.innerPanel.set_brushthick(thick_value)
             print('Set brush thickness: {}'.format(thick_value))
 
-
     def _MakeBitmap(self, color_rgb):
         bmp = wx.EmptyBitmap(15, 15)
         dc = wx.MemoryDC()
@@ -173,7 +173,7 @@ class MagicPanel(wx.Window):
     # ==========================================
     """
 
-    def __init__(self, parent, ID, img, tool):
+    def __init__(self, parent, ID, img, img_path, tool):
         default_size = (988, 710)
         wx.Window.__init__(self, parent, ID, size=default_size)
         self.SetBackgroundColour("Dark Grey")
@@ -181,7 +181,8 @@ class MagicPanel(wx.Window):
         self.img = img
         self.ID = ID
         self.win_xy = self.GetSizeTuple()
-        self.innerPanel = DrawMagicPanel(self, ID, self.img, self.win_xy)
+        self.innerPanel = DrawMagicPanel(
+            self, ID, self.img, img_path, self.win_xy)
 
         # Align innerPanel in Center
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -208,10 +209,10 @@ class DrawMagicPanel(wx.Panel):
     # ==========================================
     """
 
-    def __init__(self, parent, ID, img, win_xy, color=None):
+    def __init__(self, parent, ID, img, img_path, win_xy, color=None):
         # caculate scale of input image
         self.img = img
-        # print "win_xy", win_xy
+        self.img_path = img_path
         height, width = self.img.shape[:2]
         draw_size_w = win_xy[0] - 50
         if width < draw_size_w:
@@ -244,8 +245,8 @@ class DrawMagicPanel(wx.Panel):
         self.mask[:] = 0
 
         # setup for drawbitmap
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB) ##RGB
-        self.bmp = wx.BitmapFromBuffer(width, height, frame) ##RGB
+        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)  # RGB
+        self.bmp = wx.BitmapFromBuffer(width, height, frame)  # RGB
 
         # Bind for event
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -263,14 +264,14 @@ class DrawMagicPanel(wx.Panel):
         self.stack_pre.push(np.array(self.img))
 
         self.pos = event.GetPositionTuple()
-        self.pos = tuple([x / self.scale for x in self.pos])
+        self.pos = tuple([int(x / self.scale) for x in self.pos])
         self.CaptureMouse()
 
     def OnLeftUp(self, event):
         if self.HasCapture():
-            coords = (0.0, 0.0) + self.pos
+            coords = (0, 0) + self.pos
             self.dragline.append(coords)
-            self.ChangeFloodFill(coords)
+            self._floodfill(coords)
             self.dragline = []
             self.ReleaseMouse()
         self.stack_nex.push(np.array(self.img))
@@ -283,23 +284,30 @@ class DrawMagicPanel(wx.Panel):
 
     def DragMotion(self, event):
         newPos = event.GetPositionTuple()
-        newPos = tuple([x / self.scale for x in newPos])
+        newPos = tuple([int(x / self.scale) for x in newPos])
         coords = self.pos + newPos
         self.dragline.append(coords)
-        self.ChangeFloodFill(coords)
+        self._floodfill(coords)
         self.pos = newPos
         self.Refresh()
         # print "coords:", coords
 
-    def ChangeFloodFill(self, coords):
+    def _floodfill(self, coords):
         # begin floodfill
-        coords = [int(x) for x in coords]
+        point = (coords[2], coords[3])
+        fill_color = (self.color[2], self.color[1], self.color[0])
+
+        # limiting mechanism 1
+        if (self.img[point[1]][point[0]] == np.array(fill_color)).all():
+            return
+        # limiting mechanism 2
         if coords[2] > self.draw_size[0] or coords[3] > self.draw_size[1]:
             return
-        fill_color = (self.color[2], self.color[1], self.color[0])
-        cv2.floodFill(self.img, self.mask, (coords[2], coords[3]),
-                      fill_color, self.floodmin, self.floodmax)
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB) ##BGR
+
+        cv2.floodFill(self.img, self.mask, point, fill_color,
+                      self.floodmin, self.floodmax)
+        self.mask[:] = 0  # must clean the mask otherwize cannot rechange color
+        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)  # BGR
         self.bmp.CopyFromBuffer(frame)
 
         print "[ACTION] floodfill {} with {}".format(self.pos, self.color)
@@ -335,7 +343,8 @@ class DrawMagicPanel(wx.Panel):
         self.bmp.CopyFromBuffer(frame)
         self.Refresh()
 
-    def next_iamge(self, img):
+    def next_iamge(self, img, img_path):
+        self.img_path = img_path
         self.img = np.array(img)
         frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
         self.bmp.CopyFromBuffer(frame)
@@ -343,7 +352,7 @@ class DrawMagicPanel(wx.Panel):
 
     def save_image(self):
         print("[Save] Saving image...")
-        save = SaveImage(self.img)
+        save = SaveImage(self.img, self.img_path)
 
 
 class BrushPanel(wx.Window):
@@ -354,7 +363,7 @@ class BrushPanel(wx.Window):
     # ==========================================
     """
 
-    def __init__(self, parent, ID, img, tool):
+    def __init__(self, parent, ID, img, img_path, tool):
         default_size = (988, 711)
         wx.Window.__init__(self, parent, ID, size=default_size)
         self.SetBackgroundColour("Gray")
@@ -362,7 +371,8 @@ class BrushPanel(wx.Window):
         self.img = img
         self.ID = ID
         self.win_xy = self.GetSizeTuple()
-        self.innerPanel = DrawBrushPanel(self, ID, self.img, self.win_xy)
+        self.innerPanel = DrawBrushPanel(
+            self, ID, self.img, img_path, self.win_xy)
 
         # Align innerPanel in Center
         hbox = wx.BoxSizer(wx.HORIZONTAL)
@@ -385,9 +395,10 @@ class DrawBrushPanel(wx.Panel):
     test by experience cannot used opencv cv2.circle and cv2.line too slow
     """
 
-    def __init__(self, parent, ID, img, win_xy, color=None):
+    def __init__(self, parent, ID, img, img_path, win_xy, color=None):
         # caculate scale of input image
         self.img = img
+        self.img_path = img_path
         height, width = self.img.shape[:2]
         draw_size_w = win_xy[0] - 50
         if width < draw_size_w:
@@ -416,8 +427,9 @@ class DrawBrushPanel(wx.Panel):
         self.label_data = get_label_data()
 
         # change image into wxpython bitmap
+        self.img = cv2.resize(self.img, self.draw_size)
         self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        image = wx.EmptyImage(width, height)
+        image = wx.EmptyImage(draw_size_w, draw_size_h)
         image.SetData(self.frame.tostring())
         self.bmp = image.ConvertToBitmap()
         self.init_buffer()
@@ -458,7 +470,7 @@ class DrawBrushPanel(wx.Panel):
             dc = wx.BufferedDC(wx.ClientDC(self), self.bmp)
             self.draw_motion(dc, event)
             # self.bmp.SaveFile("bit.bmp", wx.BITMAP_TYPE_BMP)
-            ## change self.bmp into numpy
+            # change self.bmp into numpy
             self.img = self._change2numpy(self.bmp)
             print "[ACTION] brush {} with {}".format(self.pos, self.color)
         event.Skip()
@@ -486,11 +498,9 @@ class DrawBrushPanel(wx.Panel):
     def _change2numpy(self, bitmap):
         img = wx.ImageFromBitmap(bitmap)
         arr = np.frombuffer(img.GetDataBuffer(), dtype='uint8')
-        h, w = (bitmap.GetHeight(), bitmap.GetWidth())
-        img2 = np.reshape(arr, (h,w,3)) ##RGB
-        return cv2.cvtColor(img2, cv2.COLOR_BGR2RGB) ##BGR
-
-
+        img2 = np.reshape(
+            arr, (bitmap.GetHeight(), bitmap.GetWidth(), 3))  # RGB
+        return cv2.cvtColor(img2, cv2.COLOR_BGR2RGB)  # BGR
 
     def set_brushthick(self, num):
         self.thickness = num
@@ -505,9 +515,13 @@ class DrawBrushPanel(wx.Panel):
     def GetNext(self):
         pass
 
-    def next_iamge(self, img):
-        pass
+    def next_iamge(self, img, img_path):
+        self.img_path = img_path
+        self.img = cv2.resize(img, self.draw_size)
+        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        self.bmp.CopyFromBuffer(frame)
+        self.Refresh()
 
     def save_image(self):
         print("[Save] Saving image...")
-        # save = SaveImage(self.img)
+        save = SaveImage(self.img, self.img_path)
