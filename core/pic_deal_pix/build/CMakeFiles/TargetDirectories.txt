@@ -1,0 +1,3 @@
+/home/iscreate/code/pic_deal_pix/build/CMakeFiles/edit_cache.dir
+/home/iscreate/code/pic_deal_pix/build/CMakeFiles/rebuild_cache.dir
+/home/iscreate/code/pic_deal_pix/build/CMakeFiles/test.dir

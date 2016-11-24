@@ -9,6 +9,18 @@ IsLabel's purpose is to provide a versatile tool for various labeling tasks in t
 
 In this documentation we will go over some of the key concepts of IsLabel, how to configure IsLabel using the standard components provided in the package, and finally how to go further and write custom visualization items and label format containers to deal with specific labeling needs.
 
+Input & Output
+==============
+
+Input image:
+
+![Input](https://i.stack.imgur.com/L4ZXF.jpg)
+
+Output image:
+
+![Output](https://i.stack.imgur.com/ffKnC.png)
+
+
 Temp
 ====
 
