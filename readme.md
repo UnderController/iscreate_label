@@ -14,6 +14,6 @@ Temp
 
 ```
 git add *
-git commit -m "add brush model"
+git commit -m "fix some bug"
 git push origin master
 ```
