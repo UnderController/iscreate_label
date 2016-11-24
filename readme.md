@@ -13,6 +13,7 @@ Temp
 ====
 
 ```
+find . -name "*.pyc" -print | xargs rm -rf 
 git add *
 git commit -m "fix some bug"
 git push origin master
