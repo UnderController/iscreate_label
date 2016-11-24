@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-import site
-site.addsitedir(
-    "/Users/zomi/anaconda/lib/python2.7/site-packages/")
-#-------------------------------------------------------------------------
+# ========================================================================
 # How to run these script: $ /usr/bin/python main.py
-#-------------------------------------------------------------------------
+# ========================================================================
+
+try:
+    import wx
+except:
+    import site
+    site.addsitedir("/Users/zomi/anaconda/lib/python2.7/site-packages/")
+    import wx
+
 import os
 import sys
 import json
-
-import wx
 
 
 def scale_bitmap(bitmap, wh_list):
@@ -27,6 +30,7 @@ class EmptyStackError(Exception):
     def __init__(self, message="Stack is empty: cannot pop from an empty stack!"):
         self.message = message
 
+
 class FullStackError(Exception):
     def __init__(self, message="Stack is full: cannot push to a full stack!"):
         self.message = message
@@ -34,7 +38,8 @@ class FullStackError(Exception):
 
 class Stack(object):
     """docstring for Stack"""
-    def __init__(self, max_size = 15):
+
+    def __init__(self, max_size=15):
         self.max_size = max_size
         self.data = []
 
@@ -65,6 +70,3 @@ class Stack(object):
             return out_value
         else:
             raise EmptyStackError()
-
-
-

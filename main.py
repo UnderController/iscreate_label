@@ -1,13 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-import site
-site.addsitedir(
-    "/Users/zomi/anaconda/lib/python2.7/site-packages/")
-# ====================================================================================
+# ========================================================================
 # How to run these script: $ /usr/bin/python main.py
-# ====================================================================================
+# ========================================================================
+
+try:
+    import wx
+except:
+    import site
+    site.addsitedir("/Users/zomi/anaconda/lib/python2.7/site-packages/")
+    import wx
 import os
-import wx
 import cv2
 
 from panel import *

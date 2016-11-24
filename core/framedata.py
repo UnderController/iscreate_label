@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-import site
-site.addsitedir(
-    "/Users/zomi/anaconda/lib/python2.7/site-packages/")
-#-------------------------------------------------------------------------
-# How to run these script: $ /usr/bin/python main.py
-#-------------------------------------------------------------------------
-import wx
+try:
+    import wx
+except:
+    import site
+    site.addsitedir("/Users/zomi/anaconda/lib/python2.7/site-packages/")
+    import wx
 import os
 import sys
 import json
@@ -31,6 +30,7 @@ toolBarIconList = [
     ['Backward', 'icons/backward_20.png',
      'Goto next step'],
 ]
+
 
 def get_label_data(labelfile=None):
     """
@@ -58,7 +58,7 @@ def read_images(image_path=None):
         sys.exit("[Error] Canot find label file: {}".format(image_path))
 
     with open(image_path, 'r') as fs:
-        content =  fs.readlines()
+        content = fs.readlines()
     content = [x.rstrip('\n') for x in content]
     return content
 

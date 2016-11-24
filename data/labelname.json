@@ -23,22 +23,6 @@
     ],
     "en_name": "Lane Mark"
 }, {
-    "cn_name": "标志牌",
-    "color": [
-        192,
-        128,
-        128
-    ],
-    "en_name": "sign"
-}, {
-    "cn_name": "交通灯",
-    "color": [
-        255,
-        0,
-        0
-    ],
-    "en_name": "Traffic Light"
-}, {
     "cn_name": "建筑",
     "color": [
         128,
@@ -65,7 +49,7 @@
 }, {
     "cn_name": "行人",
     "color": [
-        130,
+        128,
         200,
         200
     ],
@@ -78,12 +62,4 @@
         128
     ],
     "en_name": "car"
-}, {
-    "cn_name": "动物",
-    "color": [
-        243,
-        152,
-        64
-    ],
-    "en_name": "Animal"
 }]

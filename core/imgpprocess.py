@@ -1,16 +1,15 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
-import site
-site.addsitedir(
-    "/Users/zomi/anaconda/lib/python2.7/site-packages/")
-#=========================================================================
-# HERE INCLUDE all the imge pre process program here.
-#=========================================================================
+try:
+    import wx
+except:
+    import site
+    site.addsitedir("/Users/zomi/anaconda/lib/python2.7/site-packages/")
+    import wx
 import os
 import sys
 import json
 import cv2
-import wx
 import numpy as np
 
 from core.framedata import get_label_data
@@ -144,8 +143,9 @@ def ResizeImage(img, div, width=None):
         dst = cv2.resize(img, (w / div, h / div))
         return dst
 
-    div = img.shape[0] / float(width)
-    dst = cv2.resize(img, (w / div, h / div))
+    div = img.shape[1] / float(width)
+    size = (w / div, h / div)
+    dst = cv2.resize(img, tuple([int(x) for x in size]))
     return dst
 
 
@@ -159,8 +159,7 @@ class PreProcess(object):
 
     def __init__(self, img):
         super(PreProcess, self).__init__()
-        self.org_img = img
-        self.group1()
+        self.org_img = ResizeImage(img, -1, 850)
 
     def group1(self):
         '''
@@ -169,25 +168,25 @@ class PreProcess(object):
         step3: transparent the reduce color image into 0.8.
         step4: combine the transparent image with canny outline.
         '''
-        # self.hist_img = EqualizeHistColor(self.org_img)
+        # self.org_img = EqualizeHistColor(self.org_img)
 
-        self.blur = BlurImage(self.org_img, btype='normal', ks=3)
-        self.canny = AutoCannyColor(self.blur, stype=1)
+        self.blur = BlurImage(self.org_img, btype='median', ks=3)
+        self.canny = AutoCannyColor(self.org_img, stype=1, parameter=0.5)
         # cv2.imshow("canny", self.canny)
-        cv2.imwrite("_test_canny.jpg", self.canny)
+        # cv2.imwrite("_test_canny.jpg", self.canny)
 
         self.blur = BlurImage(self.org_img, btype='normal', ks=3)
         self.reduce = ColorReduce(self.blur, div=32)
         # cv2.imshow("reduce", self.reduce)
-        cv2.imwrite("_test_reduce.jpg", self.reduce)
+        # cv2.imwrite("_test_reduce.jpg", self.reduce)
 
-        self.red_dst = WaterMark(self.reduce, 0.2)
+        self.water = WaterMark(self.reduce, 0.15)
         # cv2.imshow("red_dst", self.red_dst)
-        cv2.imwrite("_test_result.jpg", self.red_dst)
-
-        # combine the watermark image with canny outline
+        # cv2.imwrite("_test_water.jpg", self.water)
 
         # cv2.waitKey(0)
+        dst = self.conbine(water=self.water, canny=self.canny)
+        return dst
 
     def group2(self):
         '''
@@ -206,6 +205,17 @@ class PreProcess(object):
         step4:
         '''
         pass
+
+    def conbine(self, water, canny):
+        # combine the watermark image with canny outline
+        # TODO: chagne these function to C++ make it more quickly
+        dst = water.copy()
+        for i in xrange(0, water.shape[0]):
+            for j in xrange(0, water.shape[1]):
+                if canny[i][j] == 255:
+                    dst[i][j] = np.array((255,) * 4)
+        # cv2.imwrite("_test_result.jpg", dst)
+        return dst
 
 
 class SaveImage(object):
@@ -237,8 +247,10 @@ class SaveImage(object):
     def write(self):
         dir_name_, file_name__ = os.path.split(self.img_path)
         file_name_ = os.path.splitext(file_name__)
-        file_name = os.path.join(dir_name_,
-                                 file_name_[0] + "_gt.png")
+        file_name = os.path.join(dir_name_, file_name_[0] + "_gt.png")
 
-        cv2.imwrite(file_name, self.img,
-                    (cv2.cv.CV_IMWRITE_PNG_COMPRESSION, 9))
+        try:  # MACOS
+            from cv2.cv import CV_IMWRITE_PNG_COMPRESSION as CV_PNG
+        except:  # UBUNTU
+            from cv2 import IMWRITE_PNG_COMPRESSION as CV_PNG
+        cv2.imwrite(file_name, self.img, (CV_PNG, 9))
