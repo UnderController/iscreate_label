@@ -13,7 +13,9 @@ Temp
 ====
 
 ```
+git ls-files --deleted -z | xargs -0 git rm 
 find . -name "*.pyc" -print | xargs rm -rf 
+git add -u
 git add *
 git commit -m "fix some bug"
 git push origin master

@@ -22,7 +22,7 @@ from core.utils import Stack
 from core.framedata import get_label_data
 from core.imgpprocess import SaveImage
 
-FLOOD_VALUE = 15
+FLOOD_VALUE = 10
 THICK_VALUE = 10
 
 
@@ -95,7 +95,7 @@ class LeftPanel(wx.Panel):
     def createThickGrid(self, parent):
         thick_grid = wx.GridSizer(rows=1, cols=1, hgap=0, vgap=0)
         self.thick_slider = wx.Slider(
-            self, -1, THICK_VALUE, 2, 30, pos=(0, 0), size=(100, -1),
+            self, -1, THICK_VALUE, 5, 40, pos=(0, 0), size=(100, -1),
             style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
         self.Bind(wx.EVT_SLIDER, self.OnSetThick, self.thick_slider)
 
@@ -105,7 +105,7 @@ class LeftPanel(wx.Panel):
     def createFloodGrid(self, parent):
         flood_grid = wx.GridSizer(rows=1, cols=1, hgap=0, vgap=0)
         self.slider = wx.Slider(
-            self, -1, FLOOD_VALUE, 5, 40, pos=(0, 0), size=(100, -1),
+            self, -1, FLOOD_VALUE, 0, 35, pos=(0, 0), size=(100, -1),
             style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
         self.Bind(wx.EVT_SLIDER, self.OnSetFlood, self.slider)
 
@@ -248,8 +248,8 @@ class DrawMagicPanel(wx.Panel):
         self.mask[:] = 0
 
         # setup for drawbitmap
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)  # RGB
-        self.bmp = wx.BitmapFromBuffer(width, height, frame)  # RGB
+        self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)  # RGB
+        self.bmp = wx.BitmapFromBuffer(width, height, self.frame)  # RGB
 
         # Bind for event
         self.Bind(wx.EVT_PAINT, self.OnPaint)
@@ -310,8 +310,8 @@ class DrawMagicPanel(wx.Panel):
         cv2.floodFill(self.img, self.mask, point, fill_color,
                       self.floodmin, self.floodmax)
         self.mask[:] = 0  # must clean the mask otherwize cannot rechange color
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)  # BGR
-        self.bmp.CopyFromBuffer(frame)
+        self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)  # BGR
+        self.bmp.CopyFromBuffer(self.frame)
 
         print "[ACTION] floodfill {} with {}".format(self.pos, self.color)
         return
@@ -329,33 +329,40 @@ class DrawMagicPanel(wx.Panel):
         self.floodmin = (flood_value,) * 3
         self.floodmax = (flood_value,) * 3
 
-    def GetPre(self):
+    def get_pre(self):
         # Mark: canot used the self.img save into Stack() because the numpy
         # is store in the memory, so we should deep copy the numpy like:
         ## B = np.array(A)
-        pre_img = self.stack_pre.pop()
-        self.img = np.array(pre_img)
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        self.bmp.CopyFromBuffer(frame)
-        self.Refresh()
+        if not self.stack_pre.is_empty():
+            pre_img = self.stack_pre.pop()
+            self.img = np.array(pre_img)
+            self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+            self.bmp.CopyFromBuffer(self.frame)
+            self.Refresh()
+            self.Update()
 
     def GetNext(self):
-        next_img = self.stack_nex.pop()
-        self.img = np.array(next_img)
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        self.bmp.CopyFromBuffer(frame)
-        self.Refresh()
+        if not self.stack_nex.is_empty():
+            next_img = self.stack_nex.pop()
+            self.img = np.array(next_img)
+            self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+            self.bmp.CopyFromBuffer(self.frame)
+            self.Refresh()
+            self.Update()
 
     def next_iamge(self, img, img_path):
         self.img_path = img_path
         self.img = np.array(img)
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        self.bmp.CopyFromBuffer(frame)
+        self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        self.bmp.CopyFromBuffer(self.frame)
         self.Refresh()
+        self.Update()
 
     def save_image(self):
         print("[Save] Saving image...")
         save = SaveImage(self.img, self.img_path)
+        self.Refresh()
+        self.Update()
 
 
 class BrushPanel(wx.Window):
@@ -512,7 +519,7 @@ class DrawBrushPanel(wx.Panel):
     def get_brushthick(self):
         return self.thickness
 
-    def GetPre(self):
+    def get_pre(self):
         pass
 
     def GetNext(self):
@@ -521,10 +528,13 @@ class DrawBrushPanel(wx.Panel):
     def next_iamge(self, img, img_path):
         self.img_path = img_path
         self.img = cv2.resize(img, self.draw_size)
-        frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        self.bmp.CopyFromBuffer(frame)
+        self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
+        self.bmp.CopyFromBuffer(self.frame)
         self.Refresh()
+        self.Update()
 
     def save_image(self):
         print("[Save] Saving image...")
         save = SaveImage(self.img, self.img_path)
+        self.Refresh()
+        self.Update()

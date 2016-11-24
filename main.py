@@ -225,7 +225,7 @@ class TopFrame(wx.Frame):
 
     def OnBackward(self, event):
         if not self.sketch.innerPanel.stack_pre.is_empty():
-            self.sketch.innerPanel.GetPre()
+            self.sketch.innerPanel.get_pre()
             print("[ToolBar] Pre: previous step")
         else:
             print("[ToolBar] Pre: pre stack is empty")

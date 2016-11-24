@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>图像标记第一版——公司内部文档</title>
+    <link rel="stylesheet" href="https://stackedit.io/res-min/themes/base.css" />
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS_HTML"></script>
+</head>
+
+<body>
+    <div class="container">
+        <blockquote>
+            <p>2016-11-8：LABEL工具第一版本，因为公司内部人员的时间和规模制约，因此使用开源python+QT的<a href="http://sloth.readthedocs.io/en/latest/">sloth</a>工具作为图像语义分割标记软件。</p>
+        </blockquote>
+        <h1 id="准备工作">准备工作</h1>
+        <p>mac os / Linux Ubuntu 16.06 亲测</p>
+        <p>sloth用在python和PyQt4实现，因此使用前需要安装python2.7和PyQt4，请注意好版本，python3需要PyQt5，因此不能用最新版本。</p>
+        <p>安装好python和PyQt后，下载<a href="https://github.com/cvhciKIT/sloth">工具</a>，解压后进入文件夹，然后运行python setup.py install安装，安装后自动在python的安装目录下的site-package建立程序egg。</p>
+        <p>使用前准备好json文件和对应的需要进行label的图像，其中规定格式如下：</p>
+        <pre class="prettyprint"><code class=" hljs json">[
+    {
+        "<span class="hljs-attribute">annotations</span>": <span class="hljs-value">[]</span>,
+        "<span class="hljs-attribute">class</span>": <span class="hljs-value"><span class="hljs-string">"image"</span></span>,
+        "<span class="hljs-attribute">filename</span>": <span class="hljs-value"><span class="hljs-string">"image.jpg"</span>
+    </span>}
+]</code></pre>
+        <p>当有多张图片需要一次过进行label的时候json代码如下：</p>
+        <pre class="prettyprint"><code class=" hljs json">[
+    {
+        "<span class="hljs-attribute">annotations</span>": <span class="hljs-value">[]</span>,
+        "<span class="hljs-attribute">class</span>": <span class="hljs-value"><span class="hljs-string">"image"</span></span>,
+        "<span class="hljs-attribute">filename</span>": <span class="hljs-value"><span class="hljs-string">"image1.jpg"</span>
+    </span>}
+    {
+        "<span class="hljs-attribute">annotations</span>": <span class="hljs-value">[]</span>,
+        "<span class="hljs-attribute">class</span>": <span class="hljs-value"><span class="hljs-string">"image"</span></span>,
+        "<span class="hljs-attribute">filename</span>": <span class="hljs-value"><span class="hljs-string">"image2.jpg"</span>
+    </span>}
+]</code></pre>
+        <p>然后终端运行</p>
+        <pre class="prettyprint"><code class=" hljs ruby"><span class="hljs-variable">$ </span>sloth examples/example1_labels.json</code></pre>
+        <p>出现如下图所示：</p>
+        <p><img src="http://img.blog.csdn.net/20161108145449432" alt="这里写图片描述" title=""></p>
+        <p>点击软件中polygon然后自学如何使用该polygon工具，该工具需要对图中的目标进行鼠标选择，现在为了让不同人进行流水线处理，因此规定每一个人对于每一个分类进行一次处理。例如我要处理行人，因此只需要在图中圈出“人”就可以了，如下所示：</p>
+        <p><img src="http://img.blog.csdn.net/20161108145900277" alt="这里写图片描述" title=""></p>
+        <p>批处理完一个类别之后，请注意把上面example1_labels.json文件命名为对应的分类英文名字（见附表）。</p>
+        <p>最后由程序员根据对应的example1_labels.json里面的坐标系和对应的文件名生成label PNG图片。</p>
+        <h1 id="分类表">分类表</h1>
+        <table width="950" border="1" cellspacing="0" cellpadding="2" bordercolor="#000000">
+            <tr>
+                <td>No.</td>
+                <td>分类</td>
+                <td>En</td>
+                <td>R</td>
+                <td>G</td>
+                <td>B</td>
+                <td>CSS</td>
+                <td>color</td>
+            </tr>
+            <tr>
+                <td data="No.">1</td>
+                <td data="class">
+                    <font color="red">背景</font>
+                </td>
+                <td data="class">void</td>
+                <td data="R">0</td>
+                <td data="G">0</td>
+                <td data="B">0</td>
+                <td data="CSS">000000</td>
+                <td data="color" width="200" bgcolor="#000000">.</td>
+            </tr>
+            <!-- =========== Road ========== -->
+            <tr>
+                <td data="No.">.</td>
+                <td data="class"></td>
+                <td data="class"></td>
+                <td data="R"></td>
+                <td data="G"></td>
+                <td data="B"></td>
+                <td data="CSS"></td>
+                <td data="color"></td>
+            </tr>
+            <tr>
+                <td data="No.">2</td>
+                <td data="class">
+                    <font color="red">道路</font>
+                </td>
+                <td data="class">road</td>
+                <td data="R">0</td>
+                <td data="G">192</td>
+                <td data="B">0</td>
+                <td data="CSS">00c000</td>
+                <td data="color" width="200" bgcolor="#00c000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">2_1</td>
+                <td data="class">
+                    <font color="red">道路线</font>
+                </td>
+                <td data="class">Lane Mark</td>
+                <td data="R">128</td>
+                <td data="G">0</td>
+                <td data="B">192</td>
+                <td data="CSS">8000c0</td>
+                <td data="color" width="200" bgcolor="#8000c0">.</td>
+            </tr>
+            <tr>
+                <td data="No.">2_2</td>
+                <td data="class">
+                    <font color="red">标志牌</font>
+                </td>
+                <td data="class">sign</td>
+                <td data="R">192</td>
+                <td data="G">128</td>
+                <td data="B">128</td>
+                <td data="CSS">c08080</td>
+                <td data="color" width="200" bgcolor="#c08080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">2_3</td>
+                <td data="class">
+                    <font color="red">交通灯</font>
+                </td>
+                <td data="class">Traffic Light</td>
+                <td data="R">255</td>
+                <td data="G">0</td>
+                <td data="B">0</td>
+                <td data="CSS">ff0000</td>
+                <td data="color" width="200" bgcolor="#ff0000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">2_4</td>
+                <td data="class">路肩</td>
+                <td data="class">Road Shoulder</td>
+                <td data="R">128</td>
+                <td data="G">128</td>
+                <td data="B">192</td>
+                <td data="CSS">8080c0</td>
+                <td data="color" width="200" bgcolor="#8080c0">.</td>
+            </tr>
+            <tr>
+                <td data="No.">2_5</td>
+                <td data="class">人行道</td>
+                <td data="class">Sidewalk</td>
+                <td data="R">0</td>
+                <td data="G">0</td>
+                <td data="B">192</td>
+                <td data="CSS">0000c0</td>
+                <td data="color" width="200" bgcolor="#0000c0">.</td>
+            </tr>
+            <tr>
+                <td data="No.">3</td>
+                <td data="class">
+                    <font color="red">建筑</font>
+                </td>
+                <td data="class">building</td>
+                <td data="R">128</td>
+                <td data="G">0</td>
+                <td data="B">0</td>
+                <td data="CSS">800000</td>
+                <td data="color" width="200" bgcolor="#800000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">4</td>
+                <td data="class">墙体</td>
+                <td data="class">wall</td>
+                <td data="R">126</td>
+                <td data="G">107</td>
+                <td data="B">90</td>
+                <td data="CSS">7e6b5a</td>
+                <td data="color" width="200" bgcolor="#7e6b5a">.</td>
+            </tr>
+            <tr>
+                <td data="No.">5</td>
+                <td data="class">桥梁</td>
+                <td data="class">Bridge</td>
+                <td data="R">0</td>
+                <td data="G">128</td>
+                <td data="B">64</td>
+                <td data="CSS">008040</td>
+                <td data="color" width="200" bgcolor="#008040">.</td>
+            </tr>
+            <!-- =========== Road Others ========== -->
+            <tr>
+                <td data="No.">.</td>
+                <td data="class"></td>
+                <td data="class"></td>
+                <td data="R"></td>
+                <td data="G"></td>
+                <td data="B"></td>
+                <td data="CSS"></td>
+                <td data="color"></td>
+            </tr>
+            <tr>
+                <td data="No.">6</td>
+                <td data="class">
+                    <font color="red">树</font>
+                </td>
+                <td data="class">tree</td>
+                <td data="R">128</td>
+                <td data="G">128</td>
+                <td data="B">0</td>
+                <td data="CSS">808000</td>
+                <td data="color" width="200" bgcolor="#808000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">6_1</td>
+                <td data="class">草地</td>
+                <td data="class">grass</td>
+                <td data="R">0</td>
+                <td data="G">128</td>
+                <td data="B">0</td>
+                <td data="CSS">008000</td>
+                <td data="color" width="200" bgcolor="#008000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">6_2</td>
+                <td data="class">花</td>
+                <td data="class">flower</td>
+                <td data="R">64</td>
+                <td data="G">128</td>
+                <td data="B">128</td>
+                <td data="CSS">408080</td>
+                <td data="color" width="200" bgcolor="#408080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">6_3</td>
+                <td data="class">植被</td>
+                <td data="class">vegetation</td>
+                <td data="R">192</td>
+                <td data="G">192</td>
+                <td data="B">0</td>
+                <td data="CSS">c0c000</td>
+                <td data="color" width="200" bgcolor="#c0c000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">6_4</td>
+                <td data="class">篱笆</td>
+                <td data="class">Fence</td>
+                <td data="R">64</td>
+                <td data="G">64</td>
+                <td data="B">128</td>
+                <td data="CSS">404080</td>
+                <td data="color" width="200" bgcolor="#404080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">7</td>
+                <td data="class">
+                    <font color="red">天空</font>
+                </td>
+                <td data="class">sky</td>
+                <td data="R">128</td>
+                <td data="G">128</td>
+                <td data="B">128</td>
+                <td data="CSS">808080</td>
+                <td data="color" width="200" bgcolor="#808080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">8</td>
+                <td data="class">
+                    <font color="red">山</font>
+                </td>
+                <td data="class">mountain</td>
+                <td data="R">64</td>
+                <td data="G">0</td>
+                <td data="B">0</td>
+                <td data="CSS">400000</td>
+                <td data="color" width="200" bgcolor="#400000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">9</td>
+                <td data="class">
+                    <font color="red">水</font>
+                </td>
+                <td data="class">water</td>
+                <td data="R">0</td>
+                <td data="G">190</td>
+                <td data="B">255</td>
+                <td data="CSS">00beff</td>
+                <td data="color" width="200" bgcolor="#00beff">.</td>
+            </tr>
+            <!-- =========== People ========== -->
+            <tr>
+                <td data="No.">.</td>
+                <td data="class"></td>
+                <td data="class"></td>
+                <td data="R"></td>
+                <td data="G"></td>
+                <td data="B"></td>
+                <td data="CSS"></td>
+                <td data="color"></td>
+            </tr>
+            <tr>
+                <td data="No.">8</td>
+                <td data="class">
+                    <font color="red">行人</font>
+                </td>
+                <td data="class">Pedestrain</td>
+                <td data="R">130</td>
+                <td data="G">200</td>
+                <td data="B">200</td>
+                <td data="CSS">82c8c8</td>
+                <td data="color" width="200" bgcolor="#82c8c8">.</td>
+            </tr>
+            <tr>
+                <td data="No.">8_1</td>
+                <td data="class">人脸</td>
+                <td data="class">face</td>
+                <td data="R">192</td>
+                <td data="G">128</td>
+                <td data="B">0</td>
+                <td data="CSS">c08000</td>
+                <td data="color" width="200" bgcolor="#c08000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">8_2</td>
+                <td data="class">身体</td>
+                <td data="class">body</td>
+                <td data="R">64</td>
+                <td data="G">64</td>
+                <td data="B">0</td>
+                <td data="CSS">404000</td>
+                <td data="color" width="200" bgcolor="#404000">.</td>
+            </tr>
+            <!-- Car -->
+            <tr>
+                <td data="No.">.</td>
+                <td data="class"></td>
+                <td data="class"></td>
+                <td data="R"></td>
+                <td data="G"></td>
+                <td data="B"></td>
+                <td data="CSS"></td>
+                <td data="color"></td>
+            </tr>
+            <tr>
+                <td data="No.">9</td>
+                <td data="class">
+                    <font color="red">汽车</font>
+                </td>
+                <td data="class">car</td>
+                <td data="R">64</td>
+                <td data="G">0</td>
+                <td data="B">128</td>
+                <td data="CSS">400080</td>
+                <td data="color" width="200" bgcolor="#400080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">9_1</td>
+                <td data="class">单车</td>
+                <td data="class">bicycle</td>
+                <td data="R">64</td>
+                <td data="G">128</td>
+                <td data="B">0</td>
+                <td data="CSS">408000</td>
+                <td data="color" width="200" bgcolor="#408000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">9_2</td>
+                <td data="class">
+                    <font color="red">摩托车</font>
+                </td>
+                <td data="class">Motorcycle</td>
+                <td data="R">192</td>
+                <td data="G">0</td>
+                <td data="B">192</td>
+                <td data="CSS">c000c0</td>
+                <td data="color" width="200" bgcolor="#c000c0">.</td>
+            </tr>
+            <tr>
+                <td data="No.">9_3</td>
+                <td data="class">火车</td>
+                <td data="class">Train</td>
+                <td data="R">192</td>
+                <td data="G">64</td>
+                <td data="B">128</td>
+                <td data="CSS">c04080</td>
+                <td data="color" width="200" bgcolor="#c04080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">9_4</td>
+                <td data="class">飞机</td>
+                <td data="class">aeroplane</td>
+                <td data="R">192</td>
+                <td data="G">0</td>
+                <td data="B">0</td>
+                <td data="CSS">c00000</td>
+                <td data="color" width="200" bgcolor="#c00000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">9_5</td>
+                <td data="class">船</td>
+                <td data="class">boat</td>
+                <td data="R">192</td>
+                <td data="G">64</td>
+                <td data="B">0</td>
+                <td data="CSS">c04000</td>
+                <td data="color" width="200" bgcolor="#c04000">.</td>
+            </tr>
+            <!-- Animal -->
+            <tr>
+                <td data="No.">.</td>
+                <td data="class"></td>
+                <td data="class"></td>
+                <td data="R"></td>
+                <td data="G"></td>
+                <td data="B"></td>
+                <td data="CSS"></td>
+                <td data="color"></td>
+            </tr>
+            <tr>
+                <td data="No.">10</td>
+                <td data="class">
+                    <font color="red">动物</font>
+                </td>
+                <td data="class">Animal</td>
+                <td data="R">243</td>
+                <td data="G">152</td>
+                <td data="B">64</td>
+                <td data="CSS">f39800</td>
+                <td data="color" width="200" bgcolor="#f39800">.</td>
+            </tr>
+            <tr>
+                <td data="No.">10_1</td>
+                <td data="class">牛</td>
+                <td data="class">cow</td>
+                <td data="R">0</td>
+                <td data="G">0</td>
+                <td data="B">128</td>
+                <td data="CSS">000080</td>
+                <td data="color" width="200" bgcolor="#000080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">10_2</td>
+                <td data="class">马</td>
+                <td data="class">horse</td>
+                <td data="R">128</td>
+                <td data="G">0</td>
+                <td data="B">128</td>
+                <td data="CSS">800080</td>
+                <td data="color" width="200" bgcolor="#800080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">10_3</td>
+                <td data="class">羊</td>
+                <td data="class">sheep</td>
+                <td data="R">0</td>
+                <td data="G">128</td>
+                <td data="B">128</td>
+                <td data="CSS">008080</td>
+                <td data="color" width="200" bgcolor="#008080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">10_4</td>
+                <td data="class">鸟</td>
+                <td data="class">bird</td>
+                <td data="R">0</td>
+                <td data="G">64</td>
+                <td data="B">0</td>
+                <td data="CSS">004000</td>
+                <td data="color" width="200" bgcolor="#004000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">10_5</td>
+                <td data="class">猫</td>
+                <td data="class">cat</td>
+                <td data="R">0</td>
+                <td data="G">192</td>
+                <td data="B">128</td>
+                <td data="CSS">00c080</td>
+                <td data="color" width="200" bgcolor="#00c080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">10_6</td>
+                <td data="class">狗</td>
+                <td data="class">dog</td>
+                <td data="R">128</td>
+                <td data="G">192</td>
+                <td data="B">128</td>
+                <td data="CSS">80c080</td>
+                <td data="color" width="200" bgcolor="#80c080">.</td>
+            </tr>
+            <!-- Others -->
+            <tr>
+                <td data="No.">.</td>
+                <td data="class"></td>
+                <td data="class"></td>
+                <td data="R"></td>
+                <td data="G"></td>
+                <td data="B"></td>
+                <td data="CSS"></td>
+                <td data="color"></td>
+            </tr>
+            <tr>
+                <td data="No.">12</td>
+                <td data="class">书籍</td>
+                <td data="class">book</td>
+                <td data="R">128</td>
+                <td data="G">64</td>
+                <td data="B">0</td>
+                <td data="CSS">804000</td>
+                <td data="color" width="200" bgcolor="#804000">.</td>
+            </tr>
+            <tr>
+                <td data="No.">13</td>
+                <td data="class">凳子</td>
+                <td data="class">chair</td>
+                <td data="R">128</td>
+                <td data="G">64</td>
+                <td data="B">128</td>
+                <td data="CSS">804080</td>
+                <td data="color" width="200" bgcolor="#804080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">14</td>
+                <td data="class">柱杆</td>
+                <td data="class">Column Pole</td>
+                <td data="R">192</td>
+                <td data="G">192</td>
+                <td data="B">128</td>
+                <td data="CSS">c0c080</td>
+                <td data="color" width="200" bgcolor="#c0c080">.</td>
+            </tr>
+            <tr>
+                <td data="No.">15</td>
+                <td data="class">交通锥</td>
+                <td data="class">Traffic Cone</td>
+                <td data="R">0</td>
+                <td data="G">0</td>
+                <td data="B">64</td>
+                <td data="CSS">000040</td>
+                <td data="color" width="200" bgcolor="#000040">.</td>
+            </tr>
+        </table>
+    </div>
+</body>
+
+</html>
