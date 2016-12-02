@@ -52,9 +52,8 @@ class Stack(object):
             return True
 
     def push(self, value):
-        print "PUSH ==" * 10
-        print self.data
-
+        # print "PUSH ==" * 10
+        # print self.data
         if not self.is_full():
             self.data.append(value)
         else:

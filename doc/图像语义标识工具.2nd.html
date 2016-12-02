@@ -14,19 +14,7 @@
         <blockquote>
             <p>2016-11-8：LABEL工具第一版本，因为公司内部人员的时间和规模制约，因此使用开源python+QT的<a href="http://sloth.readthedocs.io/en/latest/">sloth</a>工具作为图像语义分割标记软件。</p>
         </blockquote>
-        <h1 id="准备工作">准备工作</h1>
-        <p>mac os / Linux Ubuntu 16.06 亲测</p>
-        <p>sloth用在python和PyQt4实现，因此使用前需要安装python2.7和PyQt4，请注意好版本，python3需要PyQt5，因此不能用最新版本。</p>
-        <p>安装好python和PyQt后，下载<a href="https://github.com/cvhciKIT/sloth">工具</a>，解压后进入文件夹，然后运行python setup.py install安装，安装后自动在python的安装目录下的site-package建立程序egg。</p>
-        <p>使用前准备好json文件和对应的需要进行label的图像，其中规定格式如下：</p>
-        <pre class="prettyprint"><code class=" hljs json">[
-    {
-        "<span class="hljs-attribute">annotations</span>": <span class="hljs-value">[]</span>,
-        "<span class="hljs-attribute">class</span>": <span class="hljs-value"><span class="hljs-string">"image"</span></span>,
-        "<span class="hljs-attribute">filename</span>": <span class="hljs-value"><span class="hljs-string">"image.jpg"</span>
-    </span>}
-]</code></pre>
-        <p>当有多张图片需要一次过进行label的时候json代码如下：</p>
+
         <pre class="prettyprint"><code class=" hljs json">[
     {
         "<span class="hljs-attribute">annotations</span>": <span class="hljs-value">[]</span>,

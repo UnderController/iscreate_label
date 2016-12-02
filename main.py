@@ -50,7 +50,7 @@ class TopFrame(wx.Frame):
         self.tool_iconsize = [20, 20]
         self.img_list = read_images()
         self.img_path = self.img_list[self.img_idx]
-        self.beg_img = cv2.imread(self.img_path)  # BGR
+        self.beg_img = cv2.imread(self._check_label_img(self.img_path))  # BGR
 
         # main Panel
         self.sketch = MagicPanel(
@@ -60,6 +60,15 @@ class TopFrame(wx.Frame):
         self.initStatusBar()
         self.initToolBar()
         self.createPanel()
+
+    def _check_label_img(self, org_path):
+        path, name = os.path.split(org_path)
+        nname = os.path.splitext(name)
+        new_path = os.path.join(path, nname[0] + '_L.png')
+        if os.path.isfile(new_path):
+            return new_path
+        else:
+            return org_path
 
     def createPanel(self):
         self.leftPanel = LeftPanel(self, -1, self.sketch, self.tool)
@@ -237,7 +246,7 @@ class TopFrame(wx.Frame):
         self.img_idx += 1
         if self.img_idx < len(self.img_list):
             nimg_path = self.img_list[self.img_idx]
-            new_img = cv2.imread(nimg_path)
+            new_img = cv2.imread(self._check_label_img(nimg_path))
             color = self.sketch.innerPanel.get_color()
             self.sketch.innerPanel.save_image()
 
