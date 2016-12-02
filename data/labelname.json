@@ -23,6 +23,14 @@
     ],
     "en_name": "Lane Mark"
 }, {
+    "cn_name": "汽车",
+    "color": [
+        64,
+        0,
+        128
+    ],
+    "en_name": "car"
+}, {
     "cn_name": "建筑",
     "color": [
         128,
@@ -55,11 +63,11 @@
     ],
     "en_name": "Pedestrain"
 }, {
-    "cn_name": "汽车",
+    "cn_name": "路肩",
     "color": [
-        64,
-        0,
-        128
+        128,
+        128,
+        192
     ],
-    "en_name": "car"
+    "en_name": "Road_Shoulder"
 }]

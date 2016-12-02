@@ -23,7 +23,7 @@ from core.framedata import get_label_data
 from core.imgpprocess import SaveImage
 
 FLOOD_VALUE = 10
-THICK_VALUE = 10
+THICK_VALUE = 15
 
 
 class LeftPanel(wx.Panel):
@@ -105,7 +105,7 @@ class LeftPanel(wx.Panel):
     def createFloodGrid(self, parent):
         flood_grid = wx.GridSizer(rows=1, cols=1, hgap=0, vgap=0)
         self.slider = wx.Slider(
-            self, -1, FLOOD_VALUE, 0, 35, pos=(0, 0), size=(100, -1),
+            self, -1, FLOOD_VALUE, 2, 20, pos=(0, 0), size=(100, -1),
             style=wx.SL_HORIZONTAL | wx.SL_AUTOTICKS | wx.SL_LABELS)
         self.Bind(wx.EVT_SLIDER, self.OnSetFlood, self.slider)
 
@@ -177,7 +177,7 @@ class MagicPanel(wx.Window):
     """
 
     def __init__(self, parent, ID, img, img_path, tool):
-        default_size = (988, 710)
+        default_size = (988, 711)
         wx.Window.__init__(self, parent, ID, size=default_size)
         self.SetBackgroundColour("Dark Grey")
 
@@ -213,6 +213,7 @@ class DrawMagicPanel(wx.Panel):
     """
 
     def __init__(self, parent, ID, img, img_path, win_xy, color=None):
+        print "__init__ DrawMagicPanel"
         # caculate scale of input image
         self.img = img
         self.img_path = img_path
@@ -233,8 +234,8 @@ class DrawMagicPanel(wx.Panel):
         # Setup parament
         self.floodmin_v = FLOOD_VALUE
         self.floodmax_v = FLOOD_VALUE
-        maxpqueue = 10
-        maxnqueue = 5
+        maxpqueue = 30
+        maxnqueue = 10
 
         # setup for floodFill
         self.stack_pre = Stack()
@@ -263,8 +264,9 @@ class DrawMagicPanel(wx.Panel):
         dc.DrawBitmap(self.bmp, 0, 0)
 
     def OnLeftDown(self, event):
+        history = {'img': np.array(self.img), 'mask': np.array(self.img)}
+        self.stack_pre.push(history)
         self.dragline = []
-        self.stack_pre.push(np.array(self.img))
 
         self.pos = event.GetPositionTuple()
         self.pos = tuple([int(x / self.scale) for x in self.pos])
@@ -277,7 +279,8 @@ class DrawMagicPanel(wx.Panel):
             self._floodfill(coords)
             self.dragline = []
             self.ReleaseMouse()
-        self.stack_nex.push(np.array(self.img))
+
+        # self.stack_nex.push(history)
         self.Refresh()
 
     def OnMotion(self, event):
@@ -300,16 +303,19 @@ class DrawMagicPanel(wx.Panel):
         point = (coords[2], coords[3])
         fill_color = (self.color[2], self.color[1], self.color[0])
 
+        # limiting mechanism 2
+        if coords[2] > self.draw_size[0] or coords[3] > self.draw_size[1] or \
+                coords[0] > self.draw_size[0] or coords[1] > self.draw_size[1]:
+            return
+
         # limiting mechanism 1
         if (self.img[point[1]][point[0]] == np.array(fill_color)).all():
-            return
-        # limiting mechanism 2
-        if coords[2] > self.draw_size[0] or coords[3] > self.draw_size[1]:
             return
 
         cv2.floodFill(self.img, self.mask, point, fill_color,
                       self.floodmin, self.floodmax)
-        self.mask[:] = 0  # must clean the mask otherwize cannot rechange color
+        # must clean the mask otherwize cannot rechange color
+        # self.mask[:] = 0
         self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)  # BGR
         self.bmp.CopyFromBuffer(self.frame)
 
@@ -322,9 +328,6 @@ class DrawMagicPanel(wx.Panel):
     def get_color(self):
         return self.color
 
-    def SetFillColor(self, color_rgb):
-        self.color = color_rgb
-
     def set_flood_value(self, flood_value):
         self.floodmin = (flood_value,) * 3
         self.floodmax = (flood_value,) * 3
@@ -334,8 +337,9 @@ class DrawMagicPanel(wx.Panel):
         # is store in the memory, so we should deep copy the numpy like:
         ## B = np.array(A)
         if not self.stack_pre.is_empty():
-            pre_img = self.stack_pre.pop()
-            self.img = np.array(pre_img)
+            history = self.stack_pre.pop()
+            self.img = np.array(history['img'])
+            self.mask = np.array(history['mask'])
             self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
             self.bmp.CopyFromBuffer(self.frame)
             self.Refresh()
@@ -351,14 +355,20 @@ class DrawMagicPanel(wx.Panel):
             self.Update()
 
     def next_iamge(self, img, img_path):
+        del self.img
+        del self.frame
+        del self.bmp
         self.img_path = img_path
         self.img = np.array(img)
-        self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        self.bmp.CopyFromBuffer(self.frame)
+        height, width = self.img.shape[:2]
+        self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)  # RGB
+        self.bmp = wx.BitmapFromBuffer(width, height, self.frame)  # RGB
         self.Refresh()
         self.Update()
 
     def save_image(self):
+        self.stack_pre.clean()
+        self.stack_nex.clean()
         print("[Save] Saving image...")
         save = SaveImage(self.img, self.img_path)
         self.Refresh()
@@ -376,7 +386,7 @@ class BrushPanel(wx.Window):
     def __init__(self, parent, ID, img, img_path, tool):
         default_size = (988, 711)
         wx.Window.__init__(self, parent, ID, size=default_size)
-        self.SetBackgroundColour("Gray")
+        self.SetBackgroundColour("Black")
 
         self.img = img
         self.ID = ID
@@ -430,8 +440,8 @@ class DrawBrushPanel(wx.Panel):
         self.lines = []
         self.curLine = []
         self.pos = (0, 0)
-        maxpqueue = 10
-        maxnqueue = 5
+        maxpqueue = 20
+        maxnqueue = 10
         self.stack_pre = Stack()
         self.stack_nex = Stack()
         self.label_data = get_label_data()
@@ -526,14 +536,22 @@ class DrawBrushPanel(wx.Panel):
         pass
 
     def next_iamge(self, img, img_path):
+        del self.img
+        del self.frame
+        del self.bmp
+        del self.img_path
+
         self.img_path = img_path
         self.img = cv2.resize(img, self.draw_size)
         self.frame = cv2.cvtColor(self.img, cv2.COLOR_BGR2RGB)
-        self.bmp.CopyFromBuffer(self.frame)
-        self.Refresh()
-        self.Update()
+        image = wx.EmptyImage(self.draw_size[0], self.draw_size[1])
+        image.SetData(self.frame.tostring())
+        self.bmp = image.ConvertToBitmap()
+        self.init_buffer()
 
     def save_image(self):
+        self.stack_nex.clean()
+        self.stack_pre.clean()
         print("[Save] Saving image...")
         save = SaveImage(self.img, self.img_path)
         self.Refresh()

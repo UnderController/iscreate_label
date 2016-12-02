@@ -20,6 +20,27 @@ Output image:
 
 ![Output](https://i.stack.imgur.com/ffKnC.png)
 
+Install
+========
+Ubuntu 14.04 finish.
+
+##Requirement##
+
+```
+$$ sudo apt-get opencv2
+$$ sudo apt search python-wxgtk
+$$ sudo apt-get install python-wxgtk3.0
+$$ sudo pip install numpy
+```
+
+And then change the path of the input imagelist in /data/imagelist.txt
+
+##Run##
+
+```
+ubuntu: python main.py
+mac os: /usr/bin/python main.py
+```
 
 Temp
 ====

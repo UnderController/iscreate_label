@@ -52,13 +52,15 @@ class Stack(object):
             return True
 
     def push(self, value):
+        print "PUSH ==" * 10
+        print self.data
+
         if not self.is_full():
             self.data.append(value)
-            # print "PUSH ==" * 10
-            # print self.data
-            return value
         else:
-            self.pop()
+            del_value = self.data.pop(0)
+            del del_value
+            self.data.append(value)
 
     def pop(self):
         if not self.is_empty():
@@ -70,3 +72,8 @@ class Stack(object):
             return out_value
         else:
             raise EmptyStackError()
+
+    def clean(self):
+        if not self.is_empty():
+            del self.data
+            self.data = []

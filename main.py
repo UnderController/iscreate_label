@@ -238,9 +238,10 @@ class TopFrame(wx.Frame):
         if self.img_idx < len(self.img_list):
             nimg_path = self.img_list[self.img_idx]
             new_img = cv2.imread(nimg_path)
+            color = self.sketch.innerPanel.get_color()
+            self.sketch.innerPanel.save_image()
 
             print("[ToolBar] Next: Go to next image: {}".format(nimg_path))
-            self.sketch.innerPanel.save_image()
             self.sketch.innerPanel.next_iamge(new_img, nimg_path)
         else:
             print("[Exit] No more iamges.")

@@ -176,11 +176,11 @@ class PreProcess(object):
         # cv2.imwrite("_test_canny.jpg", self.canny)
 
         self.blur = BlurImage(self.org_img, btype='normal', ks=3)
-        self.reduce = ColorReduce(self.blur, div=32)
+        self.reduce = ColorReduce(self.blur, div=16)
         # cv2.imshow("reduce", self.reduce)
         # cv2.imwrite("_test_reduce.jpg", self.reduce)
 
-        self.water = WaterMark(self.reduce, 0.15)
+        self.water = WaterMark(self.reduce, 0.05)
         # cv2.imshow("red_dst", self.red_dst)
         # cv2.imwrite("_test_water.jpg", self.water)
 
@@ -247,7 +247,7 @@ class SaveImage(object):
     def write(self):
         dir_name_, file_name__ = os.path.split(self.img_path)
         file_name_ = os.path.splitext(file_name__)
-        file_name = os.path.join(dir_name_, file_name_[0] + "_gt.png")
+        file_name = os.path.join(dir_name_, file_name_[0] + "_L.png")
 
         try:  # MACOS
             from cv2.cv import CV_IMWRITE_PNG_COMPRESSION as CV_PNG
