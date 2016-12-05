@@ -1,0 +1,6 @@
+/Users/zomi/Workplaces/iscreate_label/data/test_img/test3_gt0.png
+/Users/zomi/Workplaces/iscreate_label/data/test_img/test3_gt1.png
+/Users/zomi/Workplaces/iscreate_label/data/test_img/test3_gt2.png
+/Users/zomi/Workplaces/iscreate_label/data/test_img/test3_gt3.png
+/Users/zomi/Workplaces/iscreate_label/data/test_img/test3_gt4.png
+/Users/zomi/Workplaces/iscreate_label/data/test_img/test3_gt5.png

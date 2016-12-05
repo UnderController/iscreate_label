@@ -5,7 +5,7 @@ import cv2
 import glob
 
 if __name__ == '__main__':
-    for image_path in glob.glob("data/highway/*.jpg"):
+    for image_path in glob.glob("data/img/*.jpg"):
         print "dealing... ", image_path
         img = cv2.imread(image_path)
         prep = PreProcess(img)

@@ -16,6 +16,7 @@ import cv2
 from panel import *
 from core.utils import scale_bitmap
 from core.framedata import read_images
+from core.imgpprocess import *
 
 
 class CreateTool():
@@ -30,7 +31,7 @@ class TopFrame(wx.Frame):
     # ==========================================
     """
 
-    def __init__(self, parent=None, id=-1):
+    def __init__(self, parent=None, id=-1, win_size=(1300, 850)):
         """ Standard constructor.
 
             'parent', 'id' and 'title' are all passed to the standard wx.Frame
@@ -38,11 +39,11 @@ class TopFrame(wx.Frame):
             load into this frame, if any.
         """
 
-        self.title = "Label Tools -- iscreate"
-        self.size = (1100, 750)
+        self.title = "isLabel -- iscreate"
+        self.win_size = win_size
         self.style = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, parent, id, self.title,
-                          size=self.size, style=self.style)
+                          size=self.win_size, style=self.style)
 
         # setup parament
         self.img_idx = 0
@@ -50,13 +51,18 @@ class TopFrame(wx.Frame):
         self.tool_iconsize = [20, 20]
         self.img_list = read_images()
         self.img_path = self.img_list[self.img_idx]
-        self.beg_img = cv2.imread(self._check_label_img(self.img_path))  # BGR
+        org_img = cv2.imread(self._check_label_img(self.img_path), 1)  # BGR
+        self.beg_img = self._change_img_size(org_img)
+        self.mask_img = self._get_mask_img(self.beg_img)
+
+        # print "&" * 50
+        # print org_img.shape
+        # print self.beg_img.shape
 
         # main Panel
         self.sketch = MagicPanel(
-            self, -1, self.beg_img, self.img_path, self.tool)
+            self, -1, self.beg_img, self.mask_img, self.img_path, self.tool, self.win_size)
 
-        # self.initMenuBar()
         self.initStatusBar()
         self.initToolBar()
         self.createPanel()
@@ -66,9 +72,27 @@ class TopFrame(wx.Frame):
         nname = os.path.splitext(name)
         new_path = os.path.join(path, nname[0] + '_L.png')
         if os.path.isfile(new_path):
+            print("=" * 80)
+            print("Opening image: {}".format(new_path))
             return new_path
         else:
+            print("=" * 80)
+            print("Opening image: {}".format(org_path))
             return org_path
+
+    def _change_img_size(self, img):
+        '''
+        Chagne the image size into adative monitor size arrcoding self.win_size
+        '''
+        return ResizeImage(img, div=0, width=self.win_size[0] - 100)
+
+    def _get_mask_img(self, img):
+        '''
+        Get the mask img from class PreProcess
+        '''
+        prep = PreProcess(img)
+        n_img = prep.group2()
+        return n_img
 
     def createPanel(self):
         self.leftPanel = LeftPanel(self, -1, self.sketch, self.tool)
@@ -129,6 +153,8 @@ class TopFrame(wx.Frame):
         toolBarIconList = (
             # ('New', 'icons/new_20.png',
             #     'Open New Image File.', self.OnNew),
+            ('Pre', 'icons/pre_20.png',
+                'Previes image.', self.OnPreImg),
             ('Save', 'icons/save_20.png',
                 'Save current image file.', self.OnSave),
             ('Next', 'icons/next_20.png',
@@ -167,18 +193,20 @@ class TopFrame(wx.Frame):
 
     def OnSave(self, event):
         print("[ToolBar] Save: save img file")
-        self.sketch.innerPanel.save_image()
+        if self.tool == "magic":
+            self.sketch.innerPanel.save_image()
 
     def OnMagic(self, event):
         # used floodfill method fill range color in the graphy
         if not self.tool == "magic":
             self.tool = "magic"
 
-            img = self.sketch.innerPanel.img.copy()
+            self.img = self.sketch.innerPanel.img.copy()
             color = self.sketch.innerPanel.get_color()
             self.sketch.Destroy()
             self.leftPanel.Destroy()
-            self.sketch = MagicPanel(self, -1, img, self.img_path, self.tool)
+            self.sketch = MagicPanel(
+                self, -1, self.img, self.img_path, self.tool, self.win_size)
             self.sketch.innerPanel.set_color(color)
             # self.leftPanel.Update()
             self.createPanel()
@@ -194,11 +222,12 @@ class TopFrame(wx.Frame):
         if not self.tool == "brush":
             self.tool = "brush"
 
-            img = self.sketch.innerPanel.img.copy()
+            self.img = self.sketch.innerPanel.img.copy()
             color = self.sketch.innerPanel.get_color()
             self.sketch.Destroy()
             self.leftPanel.Destroy()
-            self.sketch = BrushPanel(self, -1, img, self.img_path, self.tool)
+            self.sketch = BrushPanel(
+                self, -1, self.img, self.img_path, self.tool)
             self.sketch.innerPanel.set_color(color)
             self.createPanel()
             self.Refresh()
@@ -239,12 +268,33 @@ class TopFrame(wx.Frame):
         else:
             print("[ToolBar] Pre: pre stack is empty")
 
+    def OnPreImg(self, event):
+        # TODO: at the end of next iamge should open a new dialog
+        # warm user it is the end of images list. Mark confirm and
+        # exit.
+        img_idx = self.img_idx - 1
+        if img_idx >= 0 and self.tool == "magic":
+            self.img_idx -= 1
+            nimg_path = self.img_list[self.img_idx]
+            new_img = cv2.imread(self._check_label_img(nimg_path))
+            color = self.sketch.innerPanel.get_color()
+            self.sketch.innerPanel.save_image()
+
+            self.sketch.innerPanel.save_image()
+            print("[ToolBar] Next: Go to previes image: {}".format(nimg_path))
+            self.sketch.innerPanel.next_iamge(new_img, nimg_path)
+        else:
+            print("[Exit] No more iamges.")
+            self.sketch.innerPanel.save_image()
+            self.OnCloseWindow(event)
+
     def OnNextImg(self, event):
         # TODO: at the end of next iamge should open a new dialog
         # warm user it is the end of images list. Mark confirm and
         # exit.
-        self.img_idx += 1
-        if self.img_idx < len(self.img_list):
+        img_idx = self.img_idx + 1
+        if img_idx < len(self.img_list) and self.tool == "magic":
+            self.img_idx += 1
             nimg_path = self.img_list[self.img_idx]
             new_img = cv2.imread(self._check_label_img(nimg_path))
             color = self.sketch.innerPanel.get_color()
@@ -285,8 +335,10 @@ class LabelApp(wx.App):
          Initialise the application.
         """
         print "OnInit"
+        monitor_size = wx.DisplaySize()
+        win_size = (monitor_size[0] - 200, monitor_size[1] - 100)
 
-        self.frame = TopFrame(None, -1)
+        self.frame = TopFrame(None, -1, win_size)
         self.frame.Centre()
         self.frame.Show(True)
         self.SetTopWindow(self.frame)

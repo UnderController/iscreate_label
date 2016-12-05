@@ -168,6 +168,8 @@ class PreProcess(object):
         step3: transparent the reduce color image into 0.8.
         step4: combine the transparent image with canny outline.
         '''
+        self.org_img = ResizeImage(img, -1, 850)
+
         # self.org_img = EqualizeHistColor(self.org_img)
 
         self.blur = BlurImage(self.org_img, btype='median', ks=3)
@@ -195,7 +197,26 @@ class PreProcess(object):
         step3:
         step4:
         '''
-        pass
+        # self.org_img = EqualizeHistColor(self.org_img)
+
+        self.blur = BlurImage(self.org_img, btype='gauss', ks=3)
+        self.canny = AutoCannyColor(self.blur, stype=1, parameter=0.5)
+        # cv2.imshow("canny", self.canny)
+        # cv2.imwrite("_test_canny.jpg", self.canny)
+
+        self.blur = BlurImage(self.org_img, btype='normal', ks=3)
+        self.reduce = ColorReduce(self.blur, div=16)
+        # cv2.imshow("reduce", self.reduce)
+        # cv2.imwrite("_test_reduce.jpg", self.reduce)
+
+        self.water = WaterMark(self.reduce, 0.05)
+        # cv2.imshow("red_dst", self.red_dst)
+        # cv2.imwrite("_test_water.jpg", self.water)
+
+        # cv2.waitKey(0)
+        dst = self.conbine(water=self.water, canny=self.canny)
+        dst = cv2.cvtColor(dst, cv2.COLOR_RGBA2RGB)
+        return dst
 
     def group3(self):
         '''
@@ -235,7 +256,6 @@ class SaveImage(object):
             self.label_color.append(each_label['color'])
 
         self.run()
-        print "[Save] Saved."
 
     def run(self):
         self.write()
@@ -254,3 +274,4 @@ class SaveImage(object):
         except:  # UBUNTU
             from cv2 import IMWRITE_PNG_COMPRESSION as CV_PNG
         cv2.imwrite(file_name, self.img, (CV_PNG, 9))
+        print("[Save] Saved in {}.".format(file_name))
